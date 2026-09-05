@@ -13,18 +13,31 @@
   </header>
   <p class="intro">连接云盘，选择后续转存与离线下载的保存位置。</p>
   <nav class="providers" aria-label="云盘">
-    <button type="button" data-provider="115" aria-pressed="false">115 <span>待接入</span></button>
+    <button type="button" data-provider="115" aria-pressed="false">115 <span>手机扫码</span></button>
     <button type="button" data-provider="guangya" aria-pressed="true">光鸭 <span>可连接</span></button>
     <button type="button" data-provider="123" aria-pressed="false">123 <span>待接入</span></button>
   </nav>
   <section id="pendingProvider" hidden>
     <h2 id="pendingTitle"></h2>
-    <p>此云盘的账号连接与目录读取尚未接入。当前可先配置光鸭。</p>
+    <p>此云盘的账号连接与目录读取尚未接入。当前可配置 115 和光鸭。</p>
   </section>
-  <main id="guangyaPanel">
+  <main id="connectionPanel">
   <fieldset id="controls">
     <details id="settings" open>
-      <summary>光鸭连接设置</summary>
+      <summary id="settingsTitle">光鸭连接设置</summary>
+      <section id="pan115Login" hidden>
+        <label for="clientType">扫码客户端类型</label>
+        <select id="clientType"><option value="">请选择客户端类型</option></select>
+        <p class="hint">每种客户端对应独立会话。请选择你愿意交给插件使用的类型；同类型在其他设备重新登录可能使会话失效。</p>
+        <button id="startQrBtn" type="button" class="primary">生成二维码</button>
+        <section id="qrPanel" aria-label="115 扫码登录" hidden>
+          <img id="qrImage" width="240" height="240" alt="使用手机 115 App 扫描此二维码">
+          <p id="qrStatus" role="status" aria-live="polite"></p>
+          <button id="cancelQrBtn" type="button">取消扫码</button>
+        </section>
+        <p class="hint">会话仅保存在本机，不随账号同步。关闭浏览器后保留，失效时重新扫码；断开仅删除所选类型的会话和目标目录。</p>
+      </section>
+      <section id="guangyaLogin">
       <label for="authMode">连接方式</label>
       <select id="authMode">
         <option value="developer">开发者凭证</option>
@@ -44,6 +57,7 @@
         <p class="hint">需光鸭会员。凭证仅保存在此浏览器本机，不随浏览器账号同步。</p>
         <button type="submit" class="primary">保存并连接</button>
       </form>
+      </section>
       <button id="disconnectBtn" class="text-button" type="button" hidden>断开并清除凭证</button>
     </details>
     <section id="browser" aria-label="光鸭文件夹" hidden>

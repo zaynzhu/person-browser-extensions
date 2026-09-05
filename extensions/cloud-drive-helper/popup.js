@@ -1,3 +1,5 @@
+import { CLIENT_TYPES } from './pan115-api.js'
+
 const controls = document.getElementById('controls')
 const settings = document.getElementById('settings')
 const browser = document.getElementById('browser')
@@ -17,11 +19,22 @@ let currentPath = ROOT_PATH
 let currentPage = 0
 let busy = false
 const authMode = document.getElementById('authMode')
+const clientType = document.getElementById('clientType')
+let currentProvider = 'guangya'
+let connectionId = null
+let qrAttempt = null
+let qrTimer = null
+for (const [app, label] of Object.entries(CLIENT_TYPES)) {
+  const option = document.createElement('option')
+  option.value = app
+  option.textContent = label
+  clientType.append(option)
+}
 
 async function send(message) {
   let response
   try {
-    response = await chrome.runtime.sendMessage({ ...message, mode: authMode.value })
+    response = await chrome.runtime.sendMessage({ provider: currentProvider, mode: authMode.value, app: clientType.value, connectionId, ...message })
   } catch {
     throw new Error('扩展后台未响应，请刷新配置页后重试')
   }
@@ -57,7 +70,7 @@ function setConnected(connected) {
   browser.hidden = !connected
   disconnectBtn.hidden = !connected
   settings.open = !connected
-  disconnectBtn.textContent = authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
+  disconnectBtn.textContent = currentProvider === '115' ? '断开并清除此类型的会话' : authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
 }
 
 function renderFolders(data, path) {
@@ -125,7 +138,9 @@ connectForm.addEventListener('submit', event => {
 })
 
 disconnectBtn.addEventListener('click', () => run(async () => {
+  await cancelQr()
   await send({ type: 'disconnect' })
+  connectionId = null
   connectForm.reset()
   currentPath = ROOT_PATH
   currentPage = 0
@@ -148,15 +163,21 @@ chooseBtn.addEventListener('click', () => run(async () => {
 
 async function loadState() {
   chooseBtn.disabled = true
+  setConnected(false)
+  renderTarget(null)
   folderList.replaceChildren()
   breadcrumbs.replaceChildren()
   currentPath = ROOT_PATH
   currentPage = 0
   const state = await send({ type: 'get-state' })
+  if (currentProvider === '115') {
+    clientType.value = state.app
+    connectionId = state.connectionId || null
+  }
   setConnected(state.connected)
   renderTarget(state.target)
   if (state.connected) await loadFolders(ROOT_PATH, 0)
-  else setStatus(authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
+  else setStatus(currentProvider === '115' ? '请选择客户端类型并使用手机扫码连接' : authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
 }
 
 run(loadState)
@@ -183,14 +204,95 @@ document.getElementById('connectWebBtn').addEventListener('click', () => run(asy
   setStatus('网页登录账号已连接')
 }))
 
+function clearQr() {
+  clearTimeout(qrTimer)
+  qrTimer = null
+  qrAttempt = null
+  document.getElementById('qrPanel').hidden = true
+  document.getElementById('qrImage').removeAttribute('src')
+}
+
+async function cancelQr() {
+  const attempt = qrAttempt
+  clearQr()
+  if (attempt) await send({ type: 'cancel-qr', provider: '115', app: attempt.app, attemptId: attempt.id })
+}
+
+function schedulePoll() {
+  qrTimer = setTimeout(() => {
+    if (!qrAttempt) return
+    if (busy) { schedulePoll(); return }
+    run(async () => {
+      const attempt = qrAttempt
+      if (Date.now() >= attempt.expiresAt) {
+        await cancelQr()
+        setStatus('二维码已过期，请重新生成', true)
+        return
+      }
+      let data
+      try { data = await send({ type: 'poll-qr', attemptId: attempt.id }) }
+      catch (error) { clearQr(); throw error }
+      if (data.status === 'connected') {
+        clearQr()
+        connectionId = data.connectionId
+        setConnected(true)
+        renderFolders(data.root, ROOT_PATH)
+        renderTarget(data.target)
+        setStatus('115 已连接，会话已保存在本机')
+      } else if (data.status === 'expired' || data.status === 'cancelled') {
+        clearQr()
+        setStatus(data.status === 'expired' ? '二维码已过期，请重新生成' : '手机端已取消登录')
+      } else {
+        document.getElementById('qrStatus').textContent = data.status === 'scanned' ? '已扫码，请在手机上确认登录' : '等待手机 115 App 扫码'
+        setStatus('')
+        schedulePoll()
+      }
+    })
+  }, 3000)
+}
+
+document.getElementById('startQrBtn').addEventListener('click', () => run(async () => {
+  await cancelQr()
+  const data = await send({ type: 'start-qr' })
+  qrAttempt = { id: data.attemptId, app: clientType.value, expiresAt: data.expiresAt }
+  document.getElementById('qrImage').src = data.image
+  document.getElementById('qrPanel').hidden = false
+  document.getElementById('qrStatus').textContent = '等待手机 115 App 扫码'
+  setStatus('请在二维码有效期内完成扫码和手机确认')
+  schedulePoll()
+}))
+
+document.getElementById('cancelQrBtn').addEventListener('click', () => run(async () => {
+  await cancelQr()
+  setStatus('已取消扫码')
+}))
+
+clientType.addEventListener('change', () => run(async () => {
+  await cancelQr()
+  connectionId = null
+  await loadState()
+}))
+
 document.querySelectorAll('[data-provider]').forEach(button => {
   button.addEventListener('click', () => {
     if (busy) return
-    const guangya = button.dataset.provider === 'guangya'
-    document.getElementById('guangyaPanel').hidden = !guangya
-    document.getElementById('pendingProvider').hidden = guangya
-    document.getElementById('pendingTitle').textContent = `${button.dataset.provider} 云盘 · 待接入`
-    document.querySelector('.badge').textContent = guangya ? '光鸭' : button.dataset.provider
-    document.querySelectorAll('[data-provider]').forEach(item => item.setAttribute('aria-pressed', String(item === button)))
+    run(async () => {
+      await cancelQr()
+      currentProvider = button.dataset.provider
+      const supported = currentProvider !== '123'
+      document.getElementById('connectionPanel').hidden = !supported
+      document.getElementById('pendingProvider').hidden = supported
+      document.getElementById('pendingTitle').textContent = '123 云盘 · 待接入'
+      document.getElementById('pan115Login').hidden = currentProvider !== '115'
+      document.getElementById('guangyaLogin').hidden = currentProvider !== 'guangya'
+      const name = currentProvider === 'guangya' ? '光鸭' : currentProvider
+      document.getElementById('settingsTitle').textContent = `${name}连接设置`
+      browser.setAttribute('aria-label', `${name}文件夹`)
+      document.querySelector('.badge').textContent = name
+      document.querySelectorAll('[data-provider]').forEach(item => item.setAttribute('aria-pressed', String(item === button)))
+      connectionId = null
+      if (supported) await loadState()
+      else setStatus('')
+    })
   })
 })

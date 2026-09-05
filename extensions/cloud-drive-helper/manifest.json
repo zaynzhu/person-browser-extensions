@@ -1,16 +1,20 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.2.0",
-  "description": "统一云盘配置入口；光鸭支持开发者凭证或网页登录连接，浏览并选择目标目录。115、123 待接入。",
+  "version": "0.3.0",
+  "description": "115 支持选择客户端扫码并保存会话，光鸭保留双方式连接；浏览文件夹与保存目标目录，123 待接入。",
   "permissions": [
     "storage",
-    "scripting"
+    "scripting",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://dapi.guangyapan.com/*",
     "https://www.guangyapan.com/*",
-    "https://api.guangyapan.com/*"
+    "https://api.guangyapan.com/*",
+    "https://qrcodeapi.115.com/*",
+    "https://passportapi.115.com/*",
+    "https://webapi.115.com/*"
   ],
   "background": {
     "service_worker": "background.js",

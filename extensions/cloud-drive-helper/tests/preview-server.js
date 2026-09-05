@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 
-// 仅用于真实浏览器中的合成界面验收，不调用光鸭，不加载真实凭证。
+// 仅用于真实浏览器中的合成界面验收，不调用云盘接口，不加载真实凭证。
 function installMockChrome() {
   const root = [
     { id: 'movie-demo', name: '合成电影' },
@@ -10,6 +10,7 @@ function installMockChrome() {
     { id: 'text-demo', name: '<img src=x onerror=alert(1)>' },
     ...Array.from({ length: 47 }, (_, index) => ({ id: `demo-${index}`, name: `分页示例 ${index + 1}` })),
   ]
+  let pendingQr = null
   const states = { developer: { connected: false, target: null }, web: { connected: false, target: null } }
   function list(parentId = '', page = 0) {
     if (parentId === 'error-demo') throw new Error('合成目录读取失败，请重试')
@@ -20,9 +21,25 @@ function installMockChrome() {
     await new Promise(resolve => setTimeout(resolve, 120))
     try {
       let data
-      const state = states[message.mode || 'developer']
+      const key = message.provider === '115' ? `115-${message.app || ''}` : message.mode || 'developer'
+      const state = states[key] ||= { connected: false, target: null }
+      if (message.type === 'start-qr') {
+        if (!message.app) throw new Error('请选择 115 扫码客户端类型')
+        pendingQr = { id: crypto.randomUUID(), polls: 0 }
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="#eee"/><text x="120" y="120" text-anchor="middle" font-size="18">合成扫码预览</text></svg>'
+        return { ok: true, data: { attemptId: pendingQr.id, expiresAt: Date.now() + 120000, image: `data:image/svg+xml,${encodeURIComponent(svg)}` } }
+      }
+      if (message.type === 'cancel-qr') { pendingQr = null; return { ok: true, data: null } }
+      if (message.type === 'poll-qr') {
+        if (!pendingQr || pendingQr.id !== message.attemptId) throw new Error('合成二维码已更换')
+        if (++pendingQr.polls === 1) return { ok: true, data: { status: 'scanned' } }
+        pendingQr = null
+        state.connected = true
+        state.connectionId = crypto.randomUUID()
+        return { ok: true, data: { status: 'connected', root: list(), target: state.target, connectionId: state.connectionId } }
+      }
       let { connected, target } = state
-      if (message.type === 'get-state') data = { connected, target }
+      if (message.type === 'get-state') data = { connected, target, app: message.app || '', connectionId: state.connectionId }
       else if (message.type === 'open-web-login') data = null
       else if (message.type === 'connect' || message.type === 'connect-web') {
         if (message.credentials?.clientSecret === 'invalid') throw new Error('合成凭证无效')
@@ -48,7 +65,7 @@ function installMockChrome() {
   } } }
 }
 
-const allowed = new Map([['/popup.html', 'text/html'], ['/popup.js', 'text/javascript'], ['/popup.css', 'text/css']])
+const allowed = new Map([['/popup.html', 'text/html'], ['/popup.js', 'text/javascript'], ['/popup.css', 'text/css'], ['/pan115-api.js', 'text/javascript']])
 const server = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://127.0.0.1').pathname
   response.setHeader('Cache-Control', 'no-store')

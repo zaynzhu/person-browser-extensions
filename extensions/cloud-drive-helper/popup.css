@@ -46,3 +46,7 @@ select { width: 100%; padding: 10px; border: 1px solid #cfd2d7; border-radius: 5
 #pendingProvider { border: 1px solid #e3e5e8; border-radius: 8px; padding: 24px; }
 #folderList { max-height: 320px; }
 @media (max-width: 480px) { body { margin: 0; padding: 16px; } .providers { gap: 6px; } }
+
+#qrPanel { text-align: center; margin-top: 16px; }
+#qrImage { display: block; max-width: 100%; height: auto; margin: 0 auto; background: #fff; }
+#qrStatus { min-height: 24px; }

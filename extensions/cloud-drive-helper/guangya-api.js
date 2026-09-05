@@ -59,22 +59,23 @@ export function validateCredentials(value) {
 }
 
 export class RateLimiter {
-  constructor(storage) {
+  constructor(storage, key = 'guangyaLastRequestAt') {
     this.storage = storage
+    this.key = key
     this.queue = Promise.resolve()
   }
 
   run(request) {
     const pending = this.queue.then(async () => {
-      const { guangyaLastRequestAt = 0 } = await this.storage.get('guangyaLastRequestAt')
-      const delay = Math.max(0, 2000 - (Date.now() - guangyaLastRequestAt))
+      const { [this.key]: lastRequestAt = 0 } = await this.storage.get(this.key)
+      const delay = Math.max(0, 2000 - (Date.now() - lastRequestAt))
       if (delay) await new Promise(resolve => setTimeout(resolve, delay))
       // 存在 session 中，后台休眠后重新启动仍遵守请求间隔。
-      await this.storage.set({ guangyaLastRequestAt: Date.now() })
+      await this.storage.set({ [this.key]: Date.now() })
       try {
         return await request()
       } finally {
-        await this.storage.set({ guangyaLastRequestAt: Date.now() })
+        await this.storage.set({ [this.key]: Date.now() })
       }
     })
     this.queue = pending.catch(() => {})

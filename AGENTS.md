@@ -95,11 +95,13 @@ zaynzhu-browser-extensions/
 │       ├── search-url.js
 │       ├── popup.html/js/css
 │       └── icons/
-│   └── cloud-drive-helper/     # 云盘助手（三云盘配置入口，光鸭双方式连接与只读目录选择）
+│   └── cloud-drive-helper/     # 云盘助手（三云盘配置入口，115 分客户端扫码、光鸭双连接与只读目录选择）
 │       ├── manifest.json
 │       ├── background.js
 │       ├── guangya-api.js       # 开发者签名 / 网页 Bearer、目录列表、跨后台休眠限流
 │       ├── web-session.js       # 按需读取指定光鸭官网登录项
+│       ├── pan115-api.js        # 分客户端二维码 / 会话交换 / 只读目录接口
+│       ├── pan115-background.js # 持久会话、类型和账号隔离、受限请求头规则
 │       ├── popup.html/js/css
 │       └── tests/               # 合成测试与界面预览
 ├── AGENTS.md
@@ -113,7 +115,9 @@ zaynzhu-browser-extensions/
 - Service Worker（后台运行）
 - 简单搜索扩展仅申请 `contextMenus` 权限；hdhive-search 额外申请 `storage`；xcili-search 额外申请 `activeTab` 和 `storage`；mukaku-search 额外申请 `storage`；kuakeq-search 额外申请 `storage`；jiaofu-search 额外申请 `storage`；subhd-search 额外申请 `storage`；imdb-search 申请 `storage`；tgtodrive-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（目标为自建 NAS，地址可配置无法预先限定）；enhance-pansou 申请 `storage` 和 `scripting`（content script 注入详情页），host 权限 `<all_urls>`（观影站与盘搜地址均可配置）；pansou-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（盘搜地址可配置）；juying-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（聚影地址可配置）；dianying-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）；panlian-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）
 - 零依赖，纯原生 JS
-- cloud-drive-helper 申请 `storage`、`scripting` 及 `https://dapi.guangyapan.com/*`、`https://api.guangyapan.com/*`、`https://www.guangyapan.com/*`。点击图标通过 `openOptionsPage` 打开 `popup.html` 完整配置页，115、123 待接入。光鸭支持开发者凭证（本机 `chrome.storage.local`，TRUSTED_CONTEXTS）与网页登录（仅用户点击时读取本扩展打开的官网标签页指定登录项，访问令牌存 `chrome.storage.session`，不读取刷新令牌）。两种方式的目标分开保存，网页目标绑定账号，切换账号清除旧目标。仅读取普通目录并保存目标，尚无分享转存或磁力离线功能。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
+- cloud-drive-helper 申请 `storage`、`scripting` 及 `https://dapi.guangyapan.com/*`、`https://api.guangyapan.com/*`、`https://www.guangyapan.com/*`。点击图标通过 `openOptionsPage` 打开 `popup.html` 完整配置页，123 待接入。光鸭支持开发者凭证（本机 `chrome.storage.local`，TRUSTED_CONTEXTS）与网页登录（仅用户点击时读取本扩展打开的官网标签页指定登录项，访问令牌存 `chrome.storage.session`，不读取刷新令牌）。两种方式的目标分开保存，网页目标绑定账号，切换账号清除旧目标。仅读取普通目录并保存目标，尚无分享转存或磁力离线功能。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
+
+- 115 主方案是在插件内选择客户端类型后手机扫码，不依赖官网已登录或 AppID。追加 `qrcodeapi.115.com`、`passportapi.115.com`、`webapi.115.com` 主机及 `declarativeNetRequestWithHostAccess` 权限；扫码 Cookie 按客户端类型保存在本机 `chrome.storage.local`，目标绑定类型和账号，换账号失败保留旧状态。仅目录请求期间通过受限规则附加 Cookie（仅本扩展发起的 `/files?` 请求），结束时移除规则，不改浏览器 Cookie。目录 ID 保持字符串；115 独立限流至少 2 秒，扫码有效期两分钟，状态长轮询超时继续等待但不突破总期限。不同配置页的旧连接 ID 不得覆盖新账号目标。所有测试与日志只用合成数据。当前真实 token / 二维码获取已核对，手机确认到目录的真实联调尚未完成。
 
 ## 开发约定
 

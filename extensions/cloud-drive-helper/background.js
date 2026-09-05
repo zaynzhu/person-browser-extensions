@@ -1,5 +1,6 @@
 import { RateLimiter, readFolderPage, validateCredentials } from './guangya-api.js'
 import { readGuangyaWebSession } from './web-session.js'
+import { create115Handler } from './pan115-background.js'
 
 const CREDENTIALS_KEY = 'guangyaCredentials'
 const TARGET_KEY = 'guangyaTarget'
@@ -8,6 +9,7 @@ const WEB_TARGET_KEY = 'guangyaWebTarget'
 const limiter = new RateLimiter(chrome.storage.session)
 const ready = chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })
 let commands = Promise.resolve()
+const handle115 = create115Handler(chrome)
 
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage())
 
@@ -26,6 +28,8 @@ async function getCredentials() {
 
 async function handleMessage(message) {
   await ready
+  if (message.provider === '115') return handle115(message)
+  if (message.provider && message.provider !== 'guangya') throw new Error('此云盘尚未接入')
   const web = message.mode === 'web'
   const targetKey = web ? WEB_TARGET_KEY : TARGET_KEY
   if (message.type === 'open-web-login') {
