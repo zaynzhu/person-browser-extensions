@@ -34,7 +34,7 @@
 | 🎞️ | [**JuYing Search**](./extensions/juying-search/) | [jying.top](https://www.jying.top) | 聚影站内影片 + 聚合网盘双入口搜索（注入式填词），支持弹窗手动搜索与自定义地址 | `stable` |
 | 🀄 | [**DianYing Search**](./extensions/dianying-search/) | [dian115.com](https://m.dian115.com) | 癫影电影/剧集/动漫三分类搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
 | 🟣 | [**PanLian Search**](./extensions/panlian-search/) | [pinglian.lol](https://pinglian.lol) | 盘链网盘资源搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
-| 📁 | [**云盘助手**](./extensions/cloud-drive-helper/) | 光鸭云盘 | 连接开发者凭证，分页浏览文件夹并保存目标目录；第一阶段只读 | `preview` |
+| 📁 | [**云盘助手**](./extensions/cloud-drive-helper/) | 光鸭云盘 | 统一配置页；光鸭支持开发者凭证或网页登录，目录只读；115、123 待接入 | `preview` |
 
 ---
 
@@ -111,16 +111,16 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 
 > 十六个扩展互相独立，可按需安装，也可以同时安装全部。
 
-### 云盘助手：光鸭目录选择（0.1.0）
+### 云盘助手：统一配置与光鸭双连接（0.2.0）
 
-1. 光鸭会员在网页版「账号设置 → TOKEN 管理 → 成为开发者」获取自己的 `client_id` 和 `client_secret`。
-2. 加载 `extensions/cloud-drive-helper/`，点击扩展图标，在连接设置中填写凭证并点击「保存并连接」。
-3. 点击文件夹进入子目录，点击路径返回上级；目录多于 50 个时可翻页。
-4. 点击「使用此文件夹」将当前目录设为目标，根目录也可选。选择仅保存在本机，尚未执行分享转存或离线下载。
+1. 加载或重新加载 `extensions/cloud-drive-helper/`，点击扩展图标打开完整配置页。页面提供 115、光鸭、123 三个入口，当前只有光鸭已接入。
+2. 光鸭可选两种连接方式：**开发者凭证**保留原有 `client_id` / `client_secret` 输入（光鸭会员在「账号设置 → TOKEN 管理 → 成为开发者」获取）；**网页登录**先点击「打开光鸭官网登录」，自行在官网完成验证码或扫码登录，再回配置页点击「已登录，连接此账号」。已登录官网时可直接回配置页连接。
+3. 点击文件夹进入子目录，点击路径返回上级；目录多于 50 个时可翻页。点击「使用此文件夹」保存目标，根目录也可选。两种连接方式的目标分别保存，重新连接不同账号时清除该方式的旧目标。
+4. 网页登录令牌仅放在 `chrome.storage.session`，浏览器重启或令牌过期后，需要刷新官网并重新连接。断开网页登录只清除扩展连接及对应目标，不退出官网，也不删除开发者凭证。
 
-凭证保存在 `chrome.storage.local`，不随账号同步、不是加密保险库，且限制为扩展可信页面访问。「断开并清除凭证」会删除凭证及目标选择；没有日志、遥测或网页注入。只请求 `storage` 和 `https://dapi.guangyapan.com/*`，连续 API 请求至少间隔 2 秒，失败不自动重试。
+开发者凭证与目标选择保存在 `chrome.storage.local`，不随账号同步、不是加密保险库，且限制为扩展可信页面访问。网页登录只在主动点击连接时，通过 `scripting` 读取本扩展打开的光鸭官网标签页中指定的登录项；不读取其他标签页，不保存密码、验证码或刷新令牌，无日志或遥测。权限限定为 `storage`、`scripting` 及光鸭的 `www`、`api`、`dapi` 三个 HTTPS 主机。API 请求至少间隔 2 秒，失败不自动重试。本版尚未执行分享转存或离线下载。
 
-接口依据：[光鸭开发者文档](https://wcn6ijfe07e0.feishu.cn/wiki/R6Z2weFwKiwnuBktcoacoDAHnZg)。2026-09-05 已用本机提供的凭证完成根目录及子目录只读验证；成功响应可能省略 `code`，客户端同时校验 `msg` 和数据结构。实际安装扩展后的联调需在 Chrome 中完成。
+接口依据：[光鸭开发者文档](https://wcn6ijfe07e0.feishu.cn/wiki/R6Z2weFwKiwnuBktcoacoDAHnZg)及[光鸭官网](https://www.guangyapan.com/)公开网页代码。2026-09-05 开发者凭证已完成根目录、子目录只读验证；网页登录已通过当前官网会话完成根目录只读请求（HTTP 200），并核对指定登录项结构。成功响应可能省略 `code`，客户端同时校验 `msg` 和数据结构。网页登录依赖官网存储格式，官网变更后可能需要适配；未验证从未登录状态输入验证码的完整过程，也未完成安装扩展后的端到端联调。
 
 合成测试与界面预览（不访问真实账号）：
 

@@ -16,7 +16,7 @@ test('后台连接、目录选择与断开保持凭证边界和原子性', async
     getURL: path => `chrome-extension://synthetic-extension/${path}`,
     onMessage: { addListener: value => { listener = value } },
   }
-  globalThis.chrome = { runtime, storage: { local, session: { get: async () => ({}), set: async () => {} } } }
+  globalThis.chrome = { runtime, action: { onClicked: { addListener: () => {} } }, storage: { local, session: { get: async () => ({}), set: async () => {} } } }
   t.after(() => { delete globalThis.chrome })
   t.mock.method(globalThis, 'fetch', async () => Response.json({ msg: 'success', data: {} }))
   await import('../background.js')

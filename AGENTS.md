@@ -95,10 +95,11 @@ zaynzhu-browser-extensions/
 │       ├── search-url.js
 │       ├── popup.html/js/css
 │       └── icons/
-│   └── cloud-drive-helper/     # 云盘助手（首阶段：光鸭只读目录选择）
+│   └── cloud-drive-helper/     # 云盘助手（三云盘配置入口，光鸭双方式连接与只读目录选择）
 │       ├── manifest.json
 │       ├── background.js
-│       ├── guangya-api.js       # 官方签名、目录列表、跨后台休眠限流
+│       ├── guangya-api.js       # 开发者签名 / 网页 Bearer、目录列表、跨后台休眠限流
+│       ├── web-session.js       # 按需读取指定光鸭官网登录项
 │       ├── popup.html/js/css
 │       └── tests/               # 合成测试与界面预览
 ├── AGENTS.md
@@ -112,7 +113,7 @@ zaynzhu-browser-extensions/
 - Service Worker（后台运行）
 - 简单搜索扩展仅申请 `contextMenus` 权限；hdhive-search 额外申请 `storage`；xcili-search 额外申请 `activeTab` 和 `storage`；mukaku-search 额外申请 `storage`；kuakeq-search 额外申请 `storage`；jiaofu-search 额外申请 `storage`；subhd-search 额外申请 `storage`；imdb-search 申请 `storage`；tgtodrive-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（目标为自建 NAS，地址可配置无法预先限定）；enhance-pansou 申请 `storage` 和 `scripting`（content script 注入详情页），host 权限 `<all_urls>`（观影站与盘搜地址均可配置）；pansou-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（盘搜地址可配置）；juying-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（聚影地址可配置）；dianying-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）；panlian-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）
 - 零依赖，纯原生 JS
-- cloud-drive-helper 仅申请 `storage` 和 `https://dapi.guangyapan.com/*`：开发者凭证保存在本机 `chrome.storage.local`（TRUSTED_CONTEXTS，不使用同步存储）；仅通过官方接口读取普通目录并在本地保存目标，尚无分享转存或磁力离线功能。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
+- cloud-drive-helper 申请 `storage`、`scripting` 及 `https://dapi.guangyapan.com/*`、`https://api.guangyapan.com/*`、`https://www.guangyapan.com/*`。点击图标通过 `openOptionsPage` 打开 `popup.html` 完整配置页，115、123 待接入。光鸭支持开发者凭证（本机 `chrome.storage.local`，TRUSTED_CONTEXTS）与网页登录（仅用户点击时读取本扩展打开的官网标签页指定登录项，访问令牌存 `chrome.storage.session`，不读取刷新令牌）。两种方式的目标分开保存，网页目标绑定账号，切换账号清除旧目标。仅读取普通目录并保存目标，尚无分享转存或磁力离线功能。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
 
 ## 开发约定
 

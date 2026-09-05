@@ -16,13 +16,14 @@ const ROOT_PATH = [{ id: '', name: '根目录' }]
 let currentPath = ROOT_PATH
 let currentPage = 0
 let busy = false
+const authMode = document.getElementById('authMode')
 
 async function send(message) {
   let response
   try {
-    response = await chrome.runtime.sendMessage(message)
+    response = await chrome.runtime.sendMessage({ ...message, mode: authMode.value })
   } catch {
-    throw new Error('扩展后台未响应，请关闭弹窗后重试')
+    throw new Error('扩展后台未响应，请刷新配置页后重试')
   }
   if (!response?.ok) throw new Error(response?.error || '操作失败，请重试')
   return response.data
@@ -56,6 +57,7 @@ function setConnected(connected) {
   browser.hidden = !connected
   disconnectBtn.hidden = !connected
   settings.open = !connected
+  disconnectBtn.textContent = authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
 }
 
 function renderFolders(data, path) {
@@ -144,10 +146,51 @@ chooseBtn.addEventListener('click', () => run(async () => {
   setStatus('目标已保存')
 }))
 
-run(async () => {
+async function loadState() {
+  chooseBtn.disabled = true
+  folderList.replaceChildren()
+  breadcrumbs.replaceChildren()
+  currentPath = ROOT_PATH
+  currentPage = 0
   const state = await send({ type: 'get-state' })
   setConnected(state.connected)
   renderTarget(state.target)
   if (state.connected) await loadFolders(ROOT_PATH, 0)
-  else setStatus('请先填写光鸭开发者凭证')
+  else setStatus(authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
+}
+
+run(loadState)
+
+
+authMode.addEventListener('change', () => {
+  connectForm.hidden = authMode.value === 'web'
+  document.getElementById('webLogin').hidden = authMode.value !== 'web'
+  clientIdInput.value = ''
+  clientSecretInput.value = ''
+  run(loadState)
+})
+
+document.getElementById('openWebLoginBtn').addEventListener('click', () => run(async () => {
+  await send({ type: 'open-web-login' })
+  setStatus('请在新打开的官网完成登录，然后回到此页点击连接')
+}))
+
+document.getElementById('connectWebBtn').addEventListener('click', () => run(async () => {
+  const data = await send({ type: 'connect-web' })
+  setConnected(true)
+  renderTarget(data.target)
+  renderFolders(data.root, ROOT_PATH)
+  setStatus('网页登录账号已连接')
+}))
+
+document.querySelectorAll('[data-provider]').forEach(button => {
+  button.addEventListener('click', () => {
+    if (busy) return
+    const guangya = button.dataset.provider === 'guangya'
+    document.getElementById('guangyaPanel').hidden = !guangya
+    document.getElementById('pendingProvider').hidden = guangya
+    document.getElementById('pendingTitle').textContent = `${button.dataset.provider} 云盘 · 待接入`
+    document.querySelector('.badge').textContent = guangya ? '光鸭' : button.dataset.provider
+    document.querySelectorAll('[data-provider]').forEach(item => item.setAttribute('aria-pressed', String(item === button)))
+  })
 })

@@ -10,8 +10,7 @@ function installMockChrome() {
     { id: 'text-demo', name: '<img src=x onerror=alert(1)>' },
     ...Array.from({ length: 47 }, (_, index) => ({ id: `demo-${index}`, name: `分页示例 ${index + 1}` })),
   ]
-  let connected = sessionStorage.getItem('preview-connected') === 'true'
-  let target = JSON.parse(sessionStorage.getItem('preview-target') || 'null')
+  const states = { developer: { connected: false, target: null }, web: { connected: false, target: null } }
   function list(parentId = '', page = 0) {
     if (parentId === 'error-demo') throw new Error('合成目录读取失败，请重试')
     const folders = parentId === '' ? root : parentId === 'movie-demo' ? [{ id: 'child-demo', name: '合成待看' }] : []
@@ -21,21 +20,25 @@ function installMockChrome() {
     await new Promise(resolve => setTimeout(resolve, 120))
     try {
       let data
+      const state = states[message.mode || 'developer']
+      let { connected, target } = state
       if (message.type === 'get-state') data = { connected, target }
-      else if (message.type === 'connect') {
-        if (message.credentials.clientSecret === 'invalid') throw new Error('合成凭证无效')
+      else if (message.type === 'open-web-login') data = null
+      else if (message.type === 'connect' || message.type === 'connect-web') {
+        if (message.credentials?.clientSecret === 'invalid') throw new Error('合成凭证无效')
         connected = true
-        sessionStorage.setItem('preview-connected', 'true')
+        state.connected = true
         data = { root: list(), target }
       } else if (message.type === 'list-folders') data = list(message.parentId, message.page)
       else if (message.type === 'save-target') {
         target = { id: message.path.at(-1).id, path: message.path }
-        sessionStorage.setItem('preview-target', JSON.stringify(target))
+        state.target = target
         data = target
       } else if (message.type === 'disconnect') {
         connected = false
         target = null
-        sessionStorage.clear()
+        state.connected = false
+        state.target = null
         data = null
       } else throw new Error('未知合成操作')
       return { ok: true, data }

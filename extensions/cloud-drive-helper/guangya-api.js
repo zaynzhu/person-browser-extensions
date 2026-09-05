@@ -82,22 +82,27 @@ export class RateLimiter {
   }
 }
 
-export async function readFolderPage(credentials, parentId = '', page = 0) {
+export async function readFolderPage(credentials, parentId = '', page = 0, webSession = false) {
   if (typeof parentId !== 'string' || !Number.isSafeInteger(page) || page < 0) {
     throw new Error('目录或分页参数无效')
   }
   const nonce = toHex(crypto.getRandomValues(new Uint8Array(16)))
   const timestamp = String(Math.floor(Date.now() / 1000))
-  const sign = await createSignature(credentials, nonce, timestamp)
+  const sign = webSession ? null : await createSignature(credentials, nonce, timestamp)
+  if (webSession && (!credentials?.accessToken || !Number.isFinite(credentials.expiresAt) || credentials.expiresAt <= Date.now())) {
+    throw new Error('网页登录已过期，请刷新光鸭官网后重新连接')
+  }
   let response
   try {
-    response = await fetch(API_URL, {
+    response = await fetch(webSession ? 'https://api.guangyapan.com/userres/v1/file/get_file_list' : API_URL, {
       method: 'POST',
       credentials: 'omit',
       redirect: 'error',
       cache: 'no-store',
       referrerPolicy: 'no-referrer',
-      headers: { 'Content-Type': 'application/json', client_id: credentials.clientId, nonce, timestamp, sign },
+      headers: webSession
+        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${credentials.accessToken}` }
+        : { 'Content-Type': 'application/json', client_id: credentials.clientId, nonce, timestamp, sign },
       body: JSON.stringify({ parentId, page, pageSize: PAGE_SIZE, dirType: 1, orderBy: 0, sortType: 0, resType: 2 }),
       signal: AbortSignal.timeout(15000),
     })
