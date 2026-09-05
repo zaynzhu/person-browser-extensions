@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>云盘助手 · 光鸭</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>云盘助手</h1>
+    <span class="badge">光鸭</span>
+  </header>
+  <p class="intro">选择一个文件夹，作为后续保存位置。</p>
+  <fieldset id="controls">
+    <details id="settings" open>
+      <summary>连接设置</summary>
+      <form id="connectForm" autocomplete="off">
+        <label for="clientId">client_id</label>
+        <input id="clientId" name="clientId" type="text" placeholder="光鸭开发者凭证 ID" maxlength="256" required spellcheck="false" autocomplete="off">
+        <label for="clientSecret">client_secret</label>
+        <input id="clientSecret" name="clientSecret" type="password" placeholder="光鸭开发者密钥" maxlength="512" required autocomplete="off">
+        <p class="hint">需光鸭会员。凭证仅保存在此浏览器本机，不随浏览器账号同步。</p>
+        <button type="submit" class="primary">保存并连接</button>
+      </form>
+      <button id="disconnectBtn" class="text-button" type="button" hidden>断开并清除凭证</button>
+    </details>
+    <section id="browser" aria-label="光鸭文件夹" hidden>
+      <div class="browser-heading">
+        <h2>文件夹</h2>
+        <button id="refreshBtn" class="text-button" type="button">刷新</button>
+      </div>
+      <nav id="breadcrumbs" aria-label="当前路径"></nav>
+      <p id="folderCount" class="hint"></p>
+      <ul id="folderList" aria-label="子文件夹列表"></ul>
+      <p id="emptyState" class="empty" hidden>此目录没有子文件夹，可以直接选用。</p>
+      <div id="pagination" hidden>
+        <button id="previousBtn" type="button">上一页</button>
+        <span id="pageLabel"></span>
+        <button id="nextBtn" type="button">下一页</button>
+      </div>
+      <button id="chooseBtn" type="button" class="primary" disabled>使用此文件夹</button>
+    </section>
+  </fieldset>
+  <p id="status" role="status" aria-live="polite"></p>
+  <footer>
+    <span class="hint">已保存的目标</span>
+    <p id="savedTarget">尚未选择</p>
+    <p class="hint">本版仅浏览目录和保存选择，尚未执行转存或离线下载。</p>
+  </footer>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

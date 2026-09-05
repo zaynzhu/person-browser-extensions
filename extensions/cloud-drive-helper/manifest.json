@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "云盘助手",
+  "version": "0.1.0",
+  "description": "连接光鸭云盘，浏览文件夹并保存目标目录。第一阶段仅提供目录读取与本地选择。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://dapi.guangyapan.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "云盘助手 · 光鸭",
+    "default_popup": "popup.html"
+  }
+}

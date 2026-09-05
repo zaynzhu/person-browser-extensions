@@ -89,12 +89,18 @@ zaynzhu-browser-extensions/
 │       ├── search-url.js
 │       ├── popup.html/js/css
 │       └── icons/
-│   └── panlian-search/         # PanLian 盘链搜索扩展（右键/弹窗直开搜索 URL，支持自定义搜索主页）
+│   ├── panlian-search/         # PanLian 盘链搜索扩展（右键/弹窗直开搜索 URL，支持自定义搜索主页）
 │       ├── manifest.json
 │       ├── background.js
 │       ├── search-url.js
 │       ├── popup.html/js/css
 │       └── icons/
+│   └── cloud-drive-helper/     # 云盘助手（首阶段：光鸭只读目录选择）
+│       ├── manifest.json
+│       ├── background.js
+│       ├── guangya-api.js       # 官方签名、目录列表、跨后台休眠限流
+│       ├── popup.html/js/css
+│       └── tests/               # 合成测试与界面预览
 ├── AGENTS.md
 ├── README.md
 └── .gitignore
@@ -106,6 +112,7 @@ zaynzhu-browser-extensions/
 - Service Worker（后台运行）
 - 简单搜索扩展仅申请 `contextMenus` 权限；hdhive-search 额外申请 `storage`；xcili-search 额外申请 `activeTab` 和 `storage`；mukaku-search 额外申请 `storage`；kuakeq-search 额外申请 `storage`；jiaofu-search 额外申请 `storage`；subhd-search 额外申请 `storage`；imdb-search 申请 `storage`；tgtodrive-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（目标为自建 NAS，地址可配置无法预先限定）；enhance-pansou 申请 `storage` 和 `scripting`（content script 注入详情页），host 权限 `<all_urls>`（观影站与盘搜地址均可配置）；pansou-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（盘搜地址可配置）；juying-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（聚影地址可配置）；dianying-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）；panlian-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）
 - 零依赖，纯原生 JS
+- cloud-drive-helper 仅申请 `storage` 和 `https://dapi.guangyapan.com/*`：开发者凭证保存在本机 `chrome.storage.local`（TRUSTED_CONTEXTS，不使用同步存储）；仅通过官方接口读取普通目录并在本地保存目标，尚无分享转存或磁力离线功能。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
 
 ## 开发约定
 
@@ -136,6 +143,8 @@ zaynzhu-browser-extensions/
 | 盘链 | `https://pinglian.lol/pages/search.php?q={keyword}`（域名可配置） |
 
 ## 发布流程
+
+云盘助手的合成测试：`fnm exec --using=22.22.2 node --test extensions/cloud-drive-helper/tests/*.test.js`。测试与预览只使用合成数据，不写入真实凭证或目录内容。
 
 1. 修改代码
 2. `chrome://extensions` 刷新扩展并测试

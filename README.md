@@ -7,7 +7,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/zaynzhu/zaynzhu-browser-extensions?style=flat&logo=github&color=yellow&label=Stars)](https://github.com/zaynzhu/zaynzhu-browser-extensions/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/zaynzhu/zaynzhu-browser-extensions?style=flat&logo=github&color=purple&label=Forks)](https://github.com/zaynzhu/zaynzhu-browser-extensions/network)
 [![Last Commit](https://img.shields.io/github/last-commit/zaynzhu/zaynzhu-browser-extensions?logo=github&label=Last%20Commit)](https://github.com/zaynzhu/zaynzhu-browser-extensions/commits/main)
-[![Extensions](https://img.shields.io/badge/Extensions-15-6366f1?style=flat&logo=googlechrome&logoColor=white)](./extensions/)
+[![Extensions](https://img.shields.io/badge/Extensions-16-6366f1?style=flat&logo=googlechrome&logoColor=white)](./extensions/)
 [![Manifest](https://img.shields.io/badge/Manifest-V3-4EAA25?style=flat&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
 [![License](https://img.shields.io/badge/License-MIT-0ea5e9?style=flat&logo=opensourceinitiative&logoColor=white)](./LICENSE)
 
@@ -34,12 +34,13 @@
 | 🎞️ | [**JuYing Search**](./extensions/juying-search/) | [jying.top](https://www.jying.top) | 聚影站内影片 + 聚合网盘双入口搜索（注入式填词），支持弹窗手动搜索与自定义地址 | `stable` |
 | 🀄 | [**DianYing Search**](./extensions/dianying-search/) | [dian115.com](https://m.dian115.com) | 癫影电影/剧集/动漫三分类搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
 | 🟣 | [**PanLian Search**](./extensions/panlian-search/) | [pinglian.lol](https://pinglian.lol) | 盘链网盘资源搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
+| 📁 | [**云盘助手**](./extensions/cloud-drive-helper/) | 光鸭云盘 | 连接开发者凭证，分页浏览文件夹并保存目标目录；第一阶段只读 | `preview` |
 
 ---
 
 ## 使用方式
 
-### 基础用法（所有扩展通用）
+### 基础用法（右键搜索扩展）
 
 1. 在任意网页选中文字
 2. 右键点击对应的搜索菜单项
@@ -106,8 +107,27 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 | JuYing Search | `extensions/juying-search/` |
 | DianYing Search | `extensions/dianying-search/` |
 | PanLian Search | `extensions/panlian-search/` |
+| 云盘助手 | `extensions/cloud-drive-helper/` |
 
-> 十五个扩展互相独立，可按需安装，也可以同时安装全部。
+> 十六个扩展互相独立，可按需安装，也可以同时安装全部。
+
+### 云盘助手：光鸭目录选择（0.1.0）
+
+1. 光鸭会员在网页版「账号设置 → TOKEN 管理 → 成为开发者」获取自己的 `client_id` 和 `client_secret`。
+2. 加载 `extensions/cloud-drive-helper/`，点击扩展图标，在连接设置中填写凭证并点击「保存并连接」。
+3. 点击文件夹进入子目录，点击路径返回上级；目录多于 50 个时可翻页。
+4. 点击「使用此文件夹」将当前目录设为目标，根目录也可选。选择仅保存在本机，尚未执行分享转存或离线下载。
+
+凭证保存在 `chrome.storage.local`，不随账号同步、不是加密保险库，且限制为扩展可信页面访问。「断开并清除凭证」会删除凭证及目标选择；没有日志、遥测或网页注入。只请求 `storage` 和 `https://dapi.guangyapan.com/*`，连续 API 请求至少间隔 2 秒，失败不自动重试。
+
+接口依据：[光鸭开发者文档](https://wcn6ijfe07e0.feishu.cn/wiki/R6Z2weFwKiwnuBktcoacoDAHnZg)。2026-09-05 已用本机提供的凭证完成根目录及子目录只读验证；成功响应可能省略 `code`，客户端同时校验 `msg` 和数据结构。实际安装扩展后的联调需在 Chrome 中完成。
+
+合成测试与界面预览（不访问真实账号）：
+
+```bash
+fnm exec --using=22.22.2 node --test extensions/cloud-drive-helper/tests/*.test.js
+fnm exec --using=22.22.2 node extensions/cloud-drive-helper/tests/preview-server.js
+```
 
 ---
 
@@ -130,6 +150,7 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 | JuYing Search | ✅ | ✅ | - | 弹窗 + 地址配置存储 + 注入填词（`scripting`，host `<all_urls>`） |
 | DianYing Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
 | PanLian Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
+| 云盘助手 | - | ✅ | - | 凭证及目标仅本机保存，仅访问光鸭官方 `dapi.guangyapan.com` |
 
 所有扩展均不采集任何用户数据。
 
@@ -223,12 +244,18 @@ zaynzhu-browser-extensions/
     │   ├── search-url.js
     │   ├── popup.html / js / css
     │   └── icons/
-    └── panlian-search/         # PanLian 盘链 — 直开搜索 URL + 地址配置
+    ├── panlian-search/         # PanLian 盘链 — 直开搜索 URL + 地址配置
+    │   ├── manifest.json
+    │   ├── background.js
+    │   ├── search-url.js
+    │   ├── popup.html / js / css
+    │   └── icons/
+    └── cloud-drive-helper/     # 云盘助手 — 光鸭只读目录选择
         ├── manifest.json
         ├── background.js
-        ├── search-url.js
+        ├── guangya-api.js
         ├── popup.html / js / css
-        └── icons/
+        └── tests/              # 合成测试与界面预览
 ```
 
 ---
