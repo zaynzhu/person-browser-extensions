@@ -164,3 +164,11 @@ test('115 拒绝响应标明失败阶段，保留字符串错误码且不泄露�
     return true
   })
 })
+
+
+test('115 目录安全密钥挑战识别 errNo，不误报为扫码失败', async t => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({
+    state: false, error: '请先验证安全密钥', errNo: 230012, errtype: 'war',
+  }))
+  await assert.rejects(read115Folders('', 0), /目录读取：115 要求验证安全密钥（230012）/)
+})

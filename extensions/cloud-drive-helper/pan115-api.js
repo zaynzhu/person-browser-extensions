@@ -50,8 +50,11 @@ async function requestJson(url, options = {}) {
     let body
     try { body = await response.json() } catch { throw new Error('115 响应格式异常') }
     if (!body || ![true, 1].includes(body.state)) {
-      const code = [body?.code, body?.errno, body?.errcode].find(value =>
+      const code = [body?.code, body?.errno, body?.errNo, body?.errcode].find(value =>
         Number.isSafeInteger(value) || (typeof value === 'string' && /^-?\d{1,16}$/.test(value)))
+      if (String(code) === '230012') {
+        throw new Error('115 要求验证安全密钥（230012）；当前插件尚未支持此验证，请勿反复扫码')
+      }
       throw new Error(`115 拒绝了请求${code !== undefined ? `（${code}）` : ''}`)
     }
     return body

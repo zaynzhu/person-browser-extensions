@@ -111,7 +111,7 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 
 > 十六个扩展互相独立，可按需安装，也可以同时安装全部。
 
-### 云盘助手：统一配置与目录选择（0.3.2）
+### 云盘助手：统一配置与目录选择（0.3.3）
 
 1. 加载或重新加载 `extensions/cloud-drive-helper/`，点击扩展图标打开完整配置页。页面提供 115、光鸭、123 三个入口，当前支持 115 和光鸭，123 待接入。
 2. 光鸭可选两种连接方式：**开发者凭证**保留原有 `client_id` / `client_secret` 输入（光鸭会员在「账号设置 → TOKEN 管理 → 成为开发者」获取）；**网页登录**先点击「打开光鸭官网登录」，自行在官网完成验证码或扫码登录，再回配置页点击「已登录，连接此账号」。已登录官网时可直接回配置页连接。
@@ -131,7 +131,7 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 
 115 新增 `qrcodeapi.115.com`、`passportapi.115.com`、`webapi.115.com` 三个 HTTPS 主机权限及 `declarativeNetRequestWithHostAccess`：仅在本扩展发起 `/files` 目录请求期间附加所选扫码会话，并在结束时移除规则；不写入、导出或替换浏览器已有的 115 Cookie。二维码等待信息放在 `chrome.storage.session`；登录 Cookie 不返回配置页、不写入日志或测试。115 的请求单独限流，每次间隔至少 2 秒。
 
-扫码调用顺序及客户端类型核对了[115 官网登录代码](https://cdnassets.115.com/login/login-api.js)和用户提供的[115不大助手](https://greasyfork.org/zh-CN/scripts/474231)。补充客户端标识参考了 [p115client 的客户端映射](https://github.com/ChenyangGao/p115client/blob/main/p115client/const.py)（Apple TV 为 `apple_tv`，Linux / macOS 为 `os_linux` / `os_mac`）。扩展自行实现最小扫码链路，不安装或运行该用户脚本。当前使用网站客户端接口，并非需审核 AppID 的开放平台 OAuth；服务端变更后可能需要适配。2026-09-06 已验证真实安卓类型 token 与二维码图片获取，并验证未扫码时长轮询超时仍保持等待；合成测试覆盖完整交换、会话持久恢复、账号与类型隔离、取消和失败处理。**尚未完成手机真实扫码后的 Cookie 交换、Chrome 请求头规则与真实目录端到端联调**。其他客户端类型的实际可用性也需逐个扫码验证。分享转存和磁力离线尚未实现。
+扫码调用顺序及客户端类型核对了[115 官网登录代码](https://cdnassets.115.com/login/login-api.js)和用户提供的[115不大助手](https://greasyfork.org/zh-CN/scripts/474231)。补充客户端标识参考了 [p115client 的客户端映射](https://github.com/ChenyangGao/p115client/blob/main/p115client/const.py)（Apple TV 为 `apple_tv`，Linux / macOS 为 `os_linux` / `os_mac`）。扩展自行实现最小扫码链路，不安装或运行该用户脚本。当前使用网站客户端接口，并非需审核 AppID 的开放平台 OAuth；服务端变更后可能需要适配。2026-09-06 已验证真实安卓类型 token 与二维码图片获取，并验证未扫码时长轮询超时仍保持等待；合成测试覆盖完整交换、会话持久恢复、账号与类型隔离、取消和失败处理。**尚未完成手机真实扫码后的 Cookie 交换、Chrome 请求头规则与真实目录端到端联调**。用户实测鸿蒙类型在设备列表显示登录，但根目录接口返回 `errNo: 230012`（要求验证安全密钥），当前插件尚未支持此验证，目录连接未完成；重复扫码不能代替安全密钥验证。其他客户端类型的实际可用性也需逐个扫码验证。分享转存和磁力离线尚未实现。
 
 合成测试与界面预览（不访问真实账号）：
 
