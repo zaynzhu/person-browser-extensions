@@ -1,5 +1,5 @@
 import { RateLimiter } from './guangya-api.js'
-import { validateClient, createQrToken, readQrImage, readQrStatus, exchangeQrToken, read115Folders } from './pan115-api.js'
+import { getDirectoryUrl, validateClient, createQrToken, readQrImage, readQrStatus, exchangeQrToken, read115Folders } from './pan115-api.js'
 
 const SESSIONS_KEY = 'pan115Sessions'
 const TARGETS_KEY = 'pan115Targets'
@@ -7,7 +7,7 @@ const PENDING_KEY = 'pan115Pending'
 const RULE_ID = 115
 
 // 只对本扩展发出的目录请求附加扫码会话，不写入浏览器 Cookie，不影响官网登录。
-export function buildSessionRule(extensionId, cookie) {
+export function buildSessionRule(extensionId, cookie, app = 'web', useAlternate = false) {
   return {
     id: RULE_ID, priority: 1,
     action: {
@@ -16,7 +16,7 @@ export function buildSessionRule(extensionId, cookie) {
       responseHeaders: [{ header: 'set-cookie', operation: 'remove' }],
     },
     condition: {
-      urlFilter: '|https://webapi.115.com/files?',
+      urlFilter: `|${getDirectoryUrl(app, useAlternate)}?`,
       initiatorDomains: [extensionId], resourceTypes: ['xmlhttprequest'],
     },
   }
@@ -26,18 +26,38 @@ export function create115Handler(chromeApi, limiter = new RateLimiter(chromeApi.
   const local = chromeApi.storage.local
   const temporary = chromeApi.storage.session
 
-  async function setCookieRule(session) {
+  async function setCookieRule(session, useAlternate = false) {
     await chromeApi.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [RULE_ID],
-      addRules: session ? [buildSessionRule(chromeApi.runtime.id, session.cookie)] : [],
+      addRules: session ? [buildSessionRule(chromeApi.runtime.id, session.cookie, session.app, useAlternate)] : [],
     })
   }
 
-  async function readFolders(session, parentId, page) {
+  async function requestFolders(session, parentId, page, useAlternate = false) {
     // 临时规则仅覆盖本次串行目录请求；请求结束即移除，凭证不留在规则中。
-    await setCookieRule(session)
-    try { return await limiter.run(() => read115Folders(parentId, page)) }
+    await setCookieRule(session, useAlternate)
+    try { return await limiter.run(() => read115Folders(parentId, page, session.app, useAlternate)) }
     finally { await setCookieRule(null) }
+  }
+
+  async function readFolders(session, parentId, page) {
+    try { return await requestFolders(session, parentId, page) }
+    catch (error) {
+      if (error.code !== 230012) throw error
+      // 网页列表拒绝时，沿用相同会话读取对应客户端的普通目录接口，仅尝试一次。
+      return requestFolders(session, parentId, page, true)
+    }
+  }
+
+  async function saveSession(session) {
+    const state = await local.get([SESSIONS_KEY, TARGETS_KEY])
+    const saved = state[TARGETS_KEY]?.[session.app]
+    const target = saved?.accountId === session.accountId ? saved.target : null
+    await local.set({
+      [SESSIONS_KEY]: { ...state[SESSIONS_KEY], [session.app]: session },
+      [TARGETS_KEY]: { ...state[TARGETS_KEY], [session.app]: { accountId: session.accountId, target } },
+    })
+    return target
   }
 
   async function getSession(app, connectionId) {
@@ -91,19 +111,21 @@ export function create115Handler(chromeApi, limiter = new RateLimiter(chromeApi.
         return { status: status === -2 ? 'cancelled' : 'expired' }
       }
       if (status !== 2) return { status: status === 1 ? 'scanned' : 'waiting' }
-      // 一次扫码只交换一次，异常后由用户重新扫码，旧会话与目标仍保留。
+      // 一次扫码只交换一次，后续目录重试复用已交换的会话。
       await temporary.remove(PENDING_KEY)
       const session = await limiter.run(() => exchangeQrToken(pending.token, app))
-      const root = await readFolders(session, '', 0)
       session.connectionId = crypto.randomUUID()
-      const state = await local.get([SESSIONS_KEY, TARGETS_KEY])
-      const saved = state[TARGETS_KEY]?.[app]
-      const target = saved?.accountId === session.accountId ? saved.target : null
-      // 会话和账号对应的目标一次写入，同类型换账号时不会继承旧目标。
-      await local.set({
-        [SESSIONS_KEY]: { ...state[SESSIONS_KEY], [app]: session },
-        [TARGETS_KEY]: { ...state[TARGETS_KEY], [app]: { accountId: session.accountId, target } },
-      })
+      const previous = (await local.get(SESSIONS_KEY))[SESSIONS_KEY]?.[app]
+      // 首次或同账号登录立即保留有效会话，目录失败可以重试；换账号仍等目录成功才替换旧连接。
+      const keepSession = !previous || previous.accountId === session.accountId
+      let target = keepSession ? await saveSession(session) : null
+      let root
+      try { root = await readFolders(session, '', 0) }
+      catch (error) {
+        if (!keepSession) throw error
+        return { status: 'connected', root: null, directoryError: error.message, target, connectionId: session.connectionId }
+      }
+      if (!keepSession) target = await saveSession(session)
       return { status: 'connected', root, target, connectionId: session.connectionId }
     }
     if (message.type === 'disconnect') {

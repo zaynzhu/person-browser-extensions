@@ -245,9 +245,20 @@ function schedulePoll() {
         clearQr()
         connectionId = data.connectionId
         setConnected(true)
-        renderFolders(data.root, ROOT_PATH)
         renderTarget(data.target)
-        setStatus('115 已连接，会话已保存在本机')
+        if (data.root) {
+          renderFolders(data.root, ROOT_PATH)
+          setStatus('115 已连接，会话已保存在本机')
+        } else {
+          currentPath = ROOT_PATH
+          currentPage = 0
+          folderList.replaceChildren()
+          breadcrumbs.replaceChildren()
+          document.getElementById('folderCount').textContent = '尚未加载目录'
+          document.getElementById('pagination').hidden = true
+          document.getElementById('emptyState').hidden = true
+          setStatus(`登录已保存，${data.directoryError}；可点击“刷新”重试目录`, true)
+        }
       } else if (data.status === 'expired' || data.status === 'cancelled') {
         clearQr()
         setStatus(data.status === 'expired' ? '二维码已过期，请重新生成' : '手机端已取消登录')

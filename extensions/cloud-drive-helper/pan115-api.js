@@ -20,6 +20,12 @@ export const CLIENT_TYPES = {
 
 const QR_ORIGIN = 'https://qrcodeapi.115.com'
 const PAGE_SIZE = 50
+export const DIRECTORY_URL = 'https://webapi.115.com/files'
+
+export function getDirectoryUrl(app = 'web', useAlternate = false) {
+  validateClient(app)
+  return useAlternate ? `https://proapi.115.com/${app}/2.0/ufile/files` : DIRECTORY_URL
+}
 
 export function validateClient(app) {
   if (!Object.hasOwn(CLIENT_TYPES, app)) throw new Error('请选择 115 扫码客户端类型')
@@ -52,10 +58,11 @@ async function requestJson(url, options = {}) {
     if (!body || ![true, 1].includes(body.state)) {
       const code = [body?.code, body?.errno, body?.errNo, body?.errcode].find(value =>
         Number.isSafeInteger(value) || (typeof value === 'string' && /^-?\d{1,16}$/.test(value)))
-      if (String(code) === '230012') {
-        throw new Error('115 要求验证安全密钥（230012）；当前插件尚未支持此验证，请勿反复扫码')
-      }
-      throw new Error(`115 拒绝了请求${code !== undefined ? `（${code}）` : ''}`)
+      const error = new Error(String(code) === '230012'
+        ? '115 要求验证安全密钥（230012）；请勿反复扫码'
+        : `115 拒绝了请求${code !== undefined ? `（${code}）` : ''}`)
+      error.code = code === undefined ? undefined : Number(code)
+      throw error
     }
     return body
   } catch (error) {
@@ -120,7 +127,7 @@ export async function exchangeQrToken(token, app) {
   return normalizeSession(body.data, app)
 }
 
-export async function read115Folders(parentId = '', page = 0) {
+export async function read115Folders(parentId = '', page = 0, app = 'web', useAlternate = false) {
   if (typeof parentId !== 'string' || (parentId && !/^\d+$/.test(parentId))
     || !Number.isSafeInteger(page) || page < 0 || !Number.isSafeInteger(page * PAGE_SIZE)) {
     throw new Error('115 目录或分页参数无效')
@@ -130,12 +137,21 @@ export async function read115Folders(parentId = '', page = 0) {
     show_dir: '1', nf: '1', cur: '1', count_folders: '1', o: 'file_name', asc: '1', custom_order: '1',
     record_open_time: '0', format: 'json',
   })
-  const body = await requestJson(`https://webapi.115.com/files?${query}`, { stage: '目录读取' })
+  const url = getDirectoryUrl(app, useAlternate)
+  const body = await requestJson(`${url}?${query}`, { stage: useAlternate ? `目录读取（${CLIENT_TYPES[app]}）` : '目录读取' })
   const total = typeof body.count === 'string' && /^\d+$/.test(body.count) ? Number(body.count) : body.count
-  if (!Array.isArray(body.data) || !Number.isSafeInteger(total) || total < body.data.length
-    || body.data.some(item => !item || item.fid !== undefined || typeof item.cid !== 'string'
-      || !/^\d+$/.test(item.cid) || typeof item.n !== 'string' || !item.n)) {
+  if (!Array.isArray(body.data) || !Number.isSafeInteger(total) || total < body.data.length) {
     throw new Error('115 文件夹响应格式异常，未保存目录选择')
   }
-  return { folders: body.data.map(item => ({ id: item.cid, name: item.n })), total, page, pageSize: PAGE_SIZE }
+  const folders = body.data.map(item => {
+    const isFolder = item && (useAlternate ? [0, '0'].includes(item.fc) : item.fid === undefined)
+    const id = useAlternate ? item?.fid : item?.cid
+    const name = useAlternate ? item?.fn || item?.n || item?.file_name : item?.n
+    if (!isFolder || typeof id !== 'string' || !/^\d+$/.test(id) || typeof name !== 'string' || !name
+      || (useAlternate && String(item.pid) !== (parentId || '0'))) {
+      throw new Error('115 文件夹响应格式异常，未保存目录选择')
+    }
+    return { id, name }
+  })
+  return { folders, total, page, pageSize: PAGE_SIZE }
 }

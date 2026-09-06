@@ -5,6 +5,7 @@ import { create115Handler, buildSessionRule } from '../pan115-background.js'
 
 const cookies = id => ({ UID: `${id}_A1_synthetic`, CID: 'synthetic-cid', SEID: 'synthetic-seid', KID: 'synthetic-kid' })
 const folderBody = { state: true, count: 1, data: [{ cid: '3500603448510908007', n: '合成目录' }] }
+const appFolderBody = { state: true, count: 1, data: [{ fc: '0', fid: '3500603448510908007', pid: '0', fn: '合成目录' }] }
 
 test('115 扫码接口绑定所选客户端，使用隔离请求并检查状态和完整会话', async t => {
   const calls = []
@@ -150,6 +151,18 @@ test('115 全流程：等待、取消、持久恢复、多客户端隔离、换�
   status = -2
   assert.equal((await send('poll-qr', { attemptId: attempt.attemptId })).status, 'cancelled')
   assert.equal(temporary.pan115Pending, undefined)
+  status = 2
+  failDirectory = true
+  attempt = await send('start-qr')
+  result = await send('poll-qr', { attemptId: attempt.attemptId })
+  assert.equal(result.status, 'connected')
+  assert.equal(result.root, null)
+  assert.match(result.directoryError, /目录读取/)
+  assert.equal((await send('get-state')).connected, true)
+  const previousQrRequests = qrRequests
+  failDirectory = false
+  assert.equal((await send('list-folders', { parentId: '', page: 0, connectionId: result.connectionId })).folders.length, 1)
+  assert.equal(qrRequests, previousQrRequests)
 })
 
 
@@ -174,4 +187,57 @@ test('115 目录安全密钥挑战识别 errNo，不误报为扫码失败', asyn
     state: false, error: '请先验证安全密钥', errNo: 230012, errtype: 'war',
   }))
   await assert.rejects(read115Folders('', 0), /目录读取：115 要求验证安全密钥（230012）/)
+})
+
+test('115 根目录遇到 230012 时沿用同一鸿蒙会话读取对应客户端列表，不重新登录', async t => {
+  const session = { app: 'harmony', accountId: '12345', cookie: 'UID=12345_S1_synthetic; CID=synthetic; SEID=synthetic', connectionId: 'synthetic-connection' }
+  const local = { pan115Sessions: { harmony: session }, pan115Targets: {} }
+  let rules = []
+  let alternateFails = false
+  const requests = []
+  let limitedRequests = 0
+  const chromeApi = {
+    runtime: { id: 'synthetic-extension' },
+    storage: { local: { get: async () => structuredClone(local) }, session: {} },
+    declarativeNetRequest: { updateSessionRules: async value => { rules = value.addRules || [] } },
+  }
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push(url)
+    const parsed = new URL(url)
+    assert.equal(parsed.searchParams.get('cid'), '0')
+    assert.equal(parsed.searchParams.get('nf'), '1')
+    assert.equal(parsed.searchParams.get('cur'), '1')
+    assert.equal(options.credentials, 'omit')
+    assert.equal(rules[0].action.requestHeaders[0].value, session.cookie)
+    assert.equal(rules[0].condition.urlFilter, `|${parsed.origin}${parsed.pathname}?`)
+    if (parsed.origin === 'https://webapi.115.com') return Response.json({ state: false, errNo: 230012 })
+    assert.equal(parsed.origin + parsed.pathname, 'https://proapi.115.com/harmony/2.0/ufile/files')
+    return Response.json(alternateFails ? { state: false, errNo: 230012 } : appFolderBody)
+  })
+  const handler = create115Handler(chromeApi, { run: action => { limitedRequests++; return action() } })
+  const read = () => handler({ type: 'list-folders', app: 'harmony', connectionId: session.connectionId, parentId: '', page: 0 })
+  assert.equal((await read()).folders[0].id, folderBody.data[0].cid)
+  assert.equal(limitedRequests, 2)
+  assert.equal(requests.length, 2)
+  assert.deepEqual(rules, [])
+  assert.deepEqual(local.pan115Sessions.harmony, session)
+  alternateFails = true
+  await assert.rejects(read(), /230012/)
+  assert.equal(requests.length, 4)
+  assert.deepEqual(rules, [])
+})
+
+
+test('115 应用目录使用独立的文件夹字段，拒绝文件、子目录和失真 ID', async t => {
+  let body = structuredClone(appFolderBody)
+  t.mock.method(globalThis, 'fetch', async url => {
+    assert.match(url, /^https:\/\/proapi\.115\.com\/harmony\/2\.0\/ufile\/files\?/)
+    return Response.json(body)
+  })
+  const read = () => read115Folders('', 0, 'harmony', true)
+  assert.deepEqual((await read()).folders, [{ id: '3500603448510908007', name: '合成目录' }])
+  for (const change of [{ fc: '1' }, { pid: '23' }, { fid: 3500603448510908007 }, { fc: null }]) {
+    body = { ...appFolderBody, data: [{ ...appFolderBody.data[0], ...change }] }
+    await assert.rejects(read(), /格式异常/)
+  }
 })
