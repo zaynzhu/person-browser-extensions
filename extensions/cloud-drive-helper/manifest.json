@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "115 支持选择客户端扫码并保存会话，光鸭保留双方式连接；浏览文件夹与保存目标目录，123 待接入。",
   "permissions": [
     "storage",
