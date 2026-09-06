@@ -118,10 +118,13 @@ export function create115Handler(chromeApi, limiter = new RateLimiter(chromeApi.
       return null
     }
     const session = await getSession(app, message.connectionId)
-    if (message.type === 'list-folders') return readFolders(session, message.parentId, message.page)
+    if (message.type === 'list-folders') {
+      if (message.parentId !== '') throw new Error('115 当前仅列出根目录第一层文件夹')
+      return readFolders(session, '', message.page)
+    }
     if (message.type === 'save-target') {
       const path = message.path
-      if (!Array.isArray(path) || !path.length || path.length > 100 || path[0]?.id !== ''
+      if (!Array.isArray(path) || path.length !== 2 || path[0]?.id !== ''
         || path.some((item, index) => !item || typeof item.id !== 'string' || (index && !/^\d+$/.test(item.id))
           || typeof item.name !== 'string' || !item.name)) throw new Error('115 目标文件夹无效，请重新选择')
       const target = { id: path.at(-1).id, path: path.map(({ id, name }) => ({ id, name })) }

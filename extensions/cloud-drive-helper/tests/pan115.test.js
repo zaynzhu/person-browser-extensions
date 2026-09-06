@@ -35,6 +35,7 @@ test('115 目录保留大整数 ID，分页只请求文件夹，拒绝混入文�
     const parsed = new URL(url)
     assert.equal(parsed.hostname, 'webapi.115.com')
     assert.equal(parsed.searchParams.get('nf'), '1')
+    assert.equal(parsed.searchParams.get('cur'), '1')
     assert.equal(parsed.searchParams.get('offset'), '100')
     assert.equal(parsed.searchParams.get('cid'), '3500603448510908007')
     assert.equal(parsed.searchParams.get('record_open_time'), '0')
@@ -114,6 +115,8 @@ test('115 全流程：等待、取消、持久恢复、多客户端隔离、换�
   assert.ok(!JSON.stringify(result).includes('synthetic-seid'))
   const path = [{ id: '', name: '根目录' }, { id: '23', name: '合成目标' }]
   await send('save-target', { path, connectionId: result.connectionId })
+  await assert.rejects(send('list-folders', { parentId: '23', page: 0, connectionId: result.connectionId }), /根目录/ )
+  await assert.rejects(send('save-target', { path: [{ id: '', name: '根目录' }], connectionId: result.connectionId }), /目标文件夹/)
   const originalConnection = result.connectionId
   handler = create115Handler(chromeApi, limiter)
   assert.equal((await send('get-state')).target.id, '23')

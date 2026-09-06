@@ -127,7 +127,7 @@ export async function read115Folders(parentId = '', page = 0) {
   }
   const query = new URLSearchParams({
     aid: '1', cid: parentId || '0', offset: String(page * PAGE_SIZE), limit: String(PAGE_SIZE),
-    show_dir: '1', nf: '1', count_folders: '1', o: 'file_name', asc: '1', custom_order: '1',
+    show_dir: '1', nf: '1', cur: '1', count_folders: '1', o: 'file_name', asc: '1', custom_order: '1',
     record_open_time: '0', format: 'json',
   })
   const body = await requestJson(`https://webapi.115.com/files?${query}`, { stage: '目录读取' })

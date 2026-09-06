@@ -68,6 +68,7 @@ function renderTarget(target) {
 
 function setConnected(connected) {
   browser.hidden = !connected
+  chooseBtn.hidden = currentProvider === '115'
   disconnectBtn.hidden = !connected
   settings.open = !connected
   disconnectBtn.textContent = currentProvider === '115' ? '断开并清除此类型的会话' : authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
@@ -101,9 +102,17 @@ function renderFolders(data, path) {
     name.textContent = folder.name
     const arrow = document.createElement('span')
     arrow.setAttribute('aria-hidden', 'true')
-    arrow.textContent = '›'
+    arrow.textContent = currentProvider === '115' ? '选择' : '›'
     button.append(icon, name, arrow)
-    button.addEventListener('click', () => run(() => loadFolders([...path, folder], 0)))
+    button.addEventListener('click', () => run(async () => {
+      if (currentProvider === '115') {
+        const target = await send({ type: 'save-target', path: [...ROOT_PATH, folder] })
+        renderTarget(target)
+        setStatus('目标文件夹已保存')
+      } else {
+        await loadFolders([...path, folder], 0)
+      }
+    }))
     row.append(button)
     folderList.append(row)
   })
