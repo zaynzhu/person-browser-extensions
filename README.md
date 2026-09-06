@@ -133,6 +133,8 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 
 扫码调用顺序及客户端类型核对了[115 官网登录代码](https://cdnassets.115.com/login/login-api.js)和用户提供的[115不大助手](https://greasyfork.org/zh-CN/scripts/474231)。补充客户端标识参考了 [p115client 的客户端映射](https://github.com/ChenyangGao/p115client/blob/main/p115client/const.py)（Apple TV 为 `apple_tv`，Linux / macOS 为 `os_linux` / `os_mac`）。扩展自行实现最小扫码链路，不安装或运行该用户脚本。当前使用网站客户端接口，并非需审核 AppID 的开放平台 OAuth；服务端变更后可能需要适配。2026-09-06 已验证真实安卓类型 token 与二维码图片获取，并验证未扫码时长轮询超时仍保持等待；合成测试覆盖完整交换、会话持久恢复、账号与类型隔离、取消和失败处理。用户提供的响应已确认鸿蒙扫码交换成功（会话类型 S1），网页目录接口曾返回 `errNo: 230012`。现仅在该错误时，沿用相同会话尝试[对应客户端的普通目录接口](https://github.com/ChenyangGao/p115client/blob/main/p115client/client.py)，不重新登录或切换类型；应用目录按 `fc / fid / fn / pid` 校验文件夹及父目录。合成测试及 Chrome 合成页面验证覆盖失败后刷新与直接保存第一层目标；独立临时 Chrome 实测确认受限规则能在 `credentials: omit` 请求中附加合成 Cookie。**真实根目录读取仍待有效会话验收**：授权只读排查时，此前鸿蒙会话已被各接口判定失效，未再次登录或读取子目录。其他客户端类型的实际可用性也需逐个扫码验证。分享转存和磁力离线尚未实现。
 
+后续升级：115 暂停在根目录第一层文件夹读取与目标保存。分享转存、磁力离线及各自的结果确认留待后续单独接入；不预先增加安全密钥流程，只有具体接口实测明确要求时再处理。下一阶段优先接入 123 云盘的登录、第一层文件夹与目标保存。
+
 合成测试与界面预览（不访问真实账号）：
 
 ```bash
