@@ -15,12 +15,8 @@
   <nav class="providers" aria-label="云盘">
     <button type="button" data-provider="115" aria-pressed="false">115 <span>手机扫码</span></button>
     <button type="button" data-provider="guangya" aria-pressed="true">光鸭 <span>可连接</span></button>
-    <button type="button" data-provider="123" aria-pressed="false">123 <span>待接入</span></button>
+    <button type="button" data-provider="123" aria-pressed="false">123 <span>账号登录</span></button>
   </nav>
-  <section id="pendingProvider" hidden>
-    <h2 id="pendingTitle"></h2>
-    <p>此云盘的账号连接与目录读取尚未接入。当前可配置 115 和光鸭。</p>
-  </section>
   <main id="connectionPanel">
   <fieldset id="controls">
     <details id="settings" open>
@@ -36,6 +32,16 @@
           <button id="cancelQrBtn" type="button">取消扫码</button>
         </section>
         <p class="hint">会话仅保存在本机，不随账号同步。关闭浏览器后保留，失效时重新扫码；断开仅删除所选类型的会话和目标目录。</p>
+      </section>
+      <section id="pan123Login" hidden>
+        <form id="pan123Form" autocomplete="off">
+          <label for="pan123Username">手机号 / 邮箱</label>
+          <input id="pan123Username" type="text" maxlength="256" required autocomplete="off" spellcheck="false">
+          <label for="pan123Password">密码</label>
+          <input id="pan123Password" type="password" maxlength="512" required autocomplete="off">
+          <button type="submit" class="primary">登录并连接</button>
+        </form>
+        <p class="hint">仅在本机保存登录令牌，不保存密码。当前仅显示根目录第一层文件夹，点击即可保存目标。若要求验证码，本版会停止并提示。</p>
       </section>
       <section id="guangyaLogin">
       <label for="authMode">连接方式</label>

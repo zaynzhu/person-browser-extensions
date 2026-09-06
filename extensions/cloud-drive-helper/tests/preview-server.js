@@ -21,7 +21,7 @@ function installMockChrome() {
     await new Promise(resolve => setTimeout(resolve, 120))
     try {
       let data
-      const key = message.provider === '115' ? `115-${message.app || ''}` : message.mode || 'developer'
+      const key = message.provider === '115' ? `115-${message.app || ''}` : message.provider === '123' ? '123' : message.mode || 'developer'
       const state = states[key] ||= { connected: false, target: null }
       if (message.type === 'start-qr') {
         if (!message.app) throw new Error('请选择 115 扫码客户端类型')
@@ -45,7 +45,8 @@ function installMockChrome() {
         if (message.credentials?.clientSecret === 'invalid') throw new Error('合成凭证无效')
         connected = true
         state.connected = true
-        data = { root: list(), target }
+        state.connectionId = crypto.randomUUID()
+        data = { root: list(), target, connectionId: state.connectionId }
       } else if (message.type === 'list-folders') data = list(message.parentId, message.page)
       else if (message.type === 'save-target') {
         target = { id: message.path.at(-1).id, path: message.path }

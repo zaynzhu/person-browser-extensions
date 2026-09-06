@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.3.5",
-  "description": "115 支持选择客户端扫码并保存会话，光鸭保留双方式连接；浏览文件夹与保存目标目录，123 待接入。",
+  "version": "0.4.0",
+  "description": "115 手机扫码、光鸭双方式连接、123 账号密码登录；读取文件夹并保存目标目录。",
   "permissions": [
     "storage",
     "scripting",
@@ -15,7 +15,8 @@
     "https://qrcodeapi.115.com/*",
     "https://passportapi.115.com/*",
     "https://webapi.115.com/*",
-    "https://proapi.115.com/*"
+    "https://proapi.115.com/*",
+    "https://api.123278.com/*"
   ],
   "background": {
     "service_worker": "background.js",

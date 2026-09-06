@@ -68,10 +68,10 @@ function renderTarget(target) {
 
 function setConnected(connected) {
   browser.hidden = !connected
-  chooseBtn.hidden = currentProvider === '115'
+  chooseBtn.hidden = currentProvider !== 'guangya'
   disconnectBtn.hidden = !connected
   settings.open = !connected
-  disconnectBtn.textContent = currentProvider === '115' ? '断开并清除此类型的会话' : authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
+  disconnectBtn.textContent = currentProvider === '123' ? '断开并清除登录令牌' : currentProvider === '115' ? '断开并清除此类型的会话' : authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
 }
 
 function renderFolders(data, path) {
@@ -102,10 +102,10 @@ function renderFolders(data, path) {
     name.textContent = folder.name
     const arrow = document.createElement('span')
     arrow.setAttribute('aria-hidden', 'true')
-    arrow.textContent = currentProvider === '115' ? '选择' : '›'
+    arrow.textContent = currentProvider !== 'guangya' ? '选择' : '›'
     button.append(icon, name, arrow)
     button.addEventListener('click', () => run(async () => {
-      if (currentProvider === '115') {
+      if (currentProvider !== 'guangya') {
         const target = await send({ type: 'save-target', path: [...ROOT_PATH, folder] })
         renderTarget(target)
         setStatus('目标文件夹已保存')
@@ -117,8 +117,9 @@ function renderFolders(data, path) {
     folderList.append(row)
   })
   folderList.scrollTop = 0
-  document.getElementById('folderCount').textContent = `共 ${data.total} 个子文件夹`
-  document.getElementById('emptyState').hidden = data.total !== 0
+  document.getElementById('folderCount').textContent = currentProvider === '123' ? `本页 ${data.folders.length} 个文件夹` : `共 ${data.total} 个子文件夹`
+  document.getElementById('emptyState').hidden = data.folders.length !== 0
+  document.getElementById('emptyState').textContent = currentProvider === 'guangya' ? '此目录没有子文件夹，可以直接选用。' : '本页没有可选择的文件夹。'
   document.getElementById('pagination').hidden = data.total <= data.pageSize && data.page === 0
   document.getElementById('pageLabel').textContent = `第 ${data.page + 1} / ${Math.max(data.page + 1, Math.ceil(data.total / data.pageSize))} 页`
   previousBtn.disabled = data.page === 0
@@ -151,6 +152,7 @@ disconnectBtn.addEventListener('click', () => run(async () => {
   await send({ type: 'disconnect' })
   connectionId = null
   connectForm.reset()
+  document.getElementById('pan123Form').reset()
   currentPath = ROOT_PATH
   currentPage = 0
   folderList.replaceChildren()
@@ -179,14 +181,12 @@ async function loadState() {
   currentPath = ROOT_PATH
   currentPage = 0
   const state = await send({ type: 'get-state' })
-  if (currentProvider === '115') {
-    clientType.value = state.app
-    connectionId = state.connectionId || null
-  }
+  if (currentProvider === '115') clientType.value = state.app
+  connectionId = state.connectionId || null
   setConnected(state.connected)
   renderTarget(state.target)
   if (state.connected) await loadFolders(ROOT_PATH, 0)
-  else setStatus(currentProvider === '115' ? '请选择客户端类型并使用手机扫码连接' : authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
+  else setStatus(currentProvider === '123' ? '请输入 123 账号密码连接' : currentProvider === '115' ? '请选择客户端类型并使用手机扫码连接' : authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
 }
 
 run(loadState)
@@ -299,10 +299,8 @@ document.querySelectorAll('[data-provider]').forEach(button => {
     run(async () => {
       await cancelQr()
       currentProvider = button.dataset.provider
-      const supported = currentProvider !== '123'
-      document.getElementById('connectionPanel').hidden = !supported
-      document.getElementById('pendingProvider').hidden = supported
-      document.getElementById('pendingTitle').textContent = '123 云盘 · 待接入'
+      document.getElementById('pan123Login').hidden = currentProvider !== '123'
+      document.getElementById('pan123Password').value = ''
       document.getElementById('pan115Login').hidden = currentProvider !== '115'
       document.getElementById('guangyaLogin').hidden = currentProvider !== 'guangya'
       const name = currentProvider === 'guangya' ? '光鸭' : currentProvider
@@ -311,8 +309,34 @@ document.querySelectorAll('[data-provider]').forEach(button => {
       document.querySelector('.badge').textContent = name
       document.querySelectorAll('[data-provider]').forEach(item => item.setAttribute('aria-pressed', String(item === button)))
       connectionId = null
-      if (supported) await loadState()
-      else setStatus('')
+      await loadState()
     })
+  })
+})
+
+
+document.getElementById('pan123Form').addEventListener('submit', event => {
+  event.preventDefault()
+  run(async () => {
+    const passwordInput = document.getElementById('pan123Password')
+    const credentials = { username: document.getElementById('pan123Username').value, password: passwordInput.value }
+    passwordInput.value = ''
+    const data = await send({ type: 'connect', credentials })
+    connectionId = data.connectionId
+    setConnected(true)
+    renderTarget(data.target)
+    if (data.root) {
+      renderFolders(data.root, ROOT_PATH)
+      setStatus('123 已连接，登录令牌已保存在本机')
+    } else {
+      currentPath = ROOT_PATH
+      currentPage = 0
+      folderList.replaceChildren()
+      breadcrumbs.replaceChildren()
+      document.getElementById('folderCount').textContent = '尚未加载目录'
+      document.getElementById('pagination').hidden = true
+      document.getElementById('emptyState').hidden = true
+      setStatus(`登录已保存，${data.directoryError}；可点击“刷新”重试目录`, true)
+    }
   })
 })
