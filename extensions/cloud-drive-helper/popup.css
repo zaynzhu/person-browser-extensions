@@ -19,7 +19,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .primary { width: 100%; padding: 10px 12px; color: #fff; background: #bb4a00; border-color: #bb4a00; font-weight: 600; }
 .primary:hover { background: #9e3f00; }
 .text-button { padding: 4px 0; border: 0; background: transparent; color: #8d400e; }
-#disconnectBtn { margin-top: 10px; }
+.connection-status { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+#connectionState { margin-right: auto; font-weight: 600; }
 .hint { margin: 8px 0; color: #666b74; font-size: 12px; }
 #browser { margin-top: 18px; }
 #breadcrumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 10px; }

@@ -51,12 +51,12 @@ async function request(path, { params = {}, body, token } = {}) {
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15000),
     })
   } catch { throw new Error('123 请求失败或超时，请稍后重试') }
-  if (response.status === 401) throw new Error('123 登录已失效，请重新登录')
+  if (response.status === 401) throw Object.assign(new Error('123 登录已失效，请重新登录'), { authExpired: true })
   if (!response.ok) throw new Error(`123 服务请求失败（HTTP ${response.status}）`)
   let result
   try { result = await response.json() } catch { throw new Error('123 返回的数据格式异常') }
   if (![0, 200].includes(result?.code)) {
-    if (result?.code === 401) throw new Error('123 登录已失效，请重新登录')
+    if (result?.code === 401) throw Object.assign(new Error('123 登录已失效，请重新登录'), { authExpired: true })
     if (/验证码|验证|captcha|verify/i.test(String(result?.message || result?.msg || ''))) throw new Error('123 要求人机验证，请先在官网完成验证后重试；本版暂不支持验证码登录')
     throw new Error('123 拒绝请求，请检查账号密码或稍后重试')
   }

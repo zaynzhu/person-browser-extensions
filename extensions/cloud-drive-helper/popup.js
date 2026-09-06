@@ -38,7 +38,10 @@ async function send(message) {
   } catch {
     throw new Error('扩展后台未响应，请刷新配置页后重试')
   }
-  if (!response?.ok) throw new Error(response?.error || '操作失败，请重试')
+  if (!response?.ok) {
+    if (response?.authExpired) { setConnected(false); renderTarget(null) }
+    throw new Error(response?.error || '操作失败，请重试')
+  }
   return response.data
 }
 
@@ -71,7 +74,9 @@ function setConnected(connected) {
   chooseBtn.hidden = currentProvider !== 'guangya'
   disconnectBtn.hidden = !connected
   settings.open = !connected
-  disconnectBtn.textContent = currentProvider === '123' ? '断开并清除登录令牌' : currentProvider === '115' ? '断开并清除此类型的会话' : authMode.value === 'web' ? '断开网页登录连接（不退出官网）' : '断开并清除开发者凭证'
+  document.getElementById('connectionState').textContent = connected ? '已连接' : '未连接'
+  document.getElementById('testConnectionBtn').hidden = !connected
+  disconnectBtn.textContent = '退出'
 }
 
 function renderFolders(data, path) {
@@ -127,8 +132,8 @@ function renderFolders(data, path) {
   chooseBtn.disabled = false
 }
 
-async function loadFolders(path, page) {
-  const data = await send({ type: 'list-folders', parentId: path.at(-1).id, page })
+async function loadFolders(path, page, force = false) {
+  const data = await send({ type: 'list-folders', parentId: path.at(-1).id, page, force })
   renderFolders(data, path)
   setStatus('')
 }
@@ -163,7 +168,7 @@ disconnectBtn.addEventListener('click', () => run(async () => {
   setStatus('已断开，凭证和目标选择已从本机清除')
 }))
 
-refreshBtn.addEventListener('click', () => run(() => loadFolders(currentPath, 0)))
+refreshBtn.addEventListener('click', () => run(() => loadFolders(currentPath, 0, true)))
 previousBtn.addEventListener('click', () => run(() => loadFolders(currentPath, currentPage - 1)))
 nextBtn.addEventListener('click', () => run(() => loadFolders(currentPath, currentPage + 1)))
 chooseBtn.addEventListener('click', () => run(async () => {
@@ -185,7 +190,10 @@ async function loadState() {
   connectionId = state.connectionId || null
   setConnected(state.connected)
   renderTarget(state.target)
-  if (state.connected) await loadFolders(ROOT_PATH, 0)
+  if (state.connected) {
+    if (state.root) { renderFolders(state.root, ROOT_PATH); setStatus('已显示保存的目录，可手动刷新或测试连接') }
+    else await loadFolders(ROOT_PATH, 0)
+  }
   else setStatus(currentProvider === '123' ? '请输入 123 账号密码连接' : currentProvider === '115' ? '请选择客户端类型并使用手机扫码连接' : authMode.value === 'web' ? '请在光鸭官网登录后连接' : '请先填写光鸭开发者凭证')
 }
 
@@ -340,3 +348,10 @@ document.getElementById('pan123Form').addEventListener('submit', event => {
     }
   })
 })
+
+
+document.getElementById('testConnectionBtn').addEventListener('click', () => run(async () => {
+  const data = await send({ type: 'test-connection' })
+  renderFolders(data.root, ROOT_PATH)
+  setStatus('连接正常，根目录已更新')
+}))

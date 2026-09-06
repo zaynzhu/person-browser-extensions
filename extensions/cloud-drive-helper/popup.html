@@ -19,6 +19,11 @@
   </nav>
   <main id="connectionPanel">
   <fieldset id="controls">
+    <div class="connection-status">
+      <span id="connectionState">未连接</span>
+      <button id="testConnectionBtn" type="button" hidden>测试连接</button>
+      <button id="disconnectBtn" type="button" hidden>退出</button>
+    </div>
     <details id="settings" open>
       <summary id="settingsTitle">光鸭连接设置</summary>
       <section id="pan115Login" hidden>
@@ -64,7 +69,6 @@
         <button type="submit" class="primary">保存并连接</button>
       </form>
       </section>
-      <button id="disconnectBtn" class="text-button" type="button" hidden>断开并清除凭证</button>
     </details>
     <section id="browser" aria-label="光鸭文件夹" hidden>
       <div class="browser-heading">

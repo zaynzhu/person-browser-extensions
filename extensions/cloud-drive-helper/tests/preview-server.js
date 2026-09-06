@@ -66,13 +66,26 @@ function installMockChrome() {
   } } }
 }
 
-const allowed = new Map([['/popup.html', 'text/html'], ['/popup.js', 'text/javascript'], ['/popup.css', 'text/css'], ['/pan115-api.js', 'text/javascript']])
+const allowed = new Map([['/popup.html', 'text/html'], ['/popup.js', 'text/javascript'], ['/popup.css', 'text/css'], ['/pan115-api.js', 'text/javascript'], ['/directory-cache.js', 'text/javascript']])
 const server = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://127.0.0.1').pathname
   response.setHeader('Cache-Control', 'no-store')
   if (path === '/preview-mock.js') {
     response.setHeader('Content-Type', 'text/javascript')
-    response.end(`(${installMockChrome.toString()})()`)
+    response.end(`import { createCachedHandler } from './directory-cache.js'
+(${installMockChrome.toString()})()
+const values = {}
+const local = { async get(key) { return { [key]: values[key] } }, async set(data) { Object.assign(values, data) }, async remove(key) { delete values[key] } }
+const original = chrome.runtime.sendMessage
+const cached = createCachedHandler(local, async message => {
+  const response = await original(message)
+  if (!response.ok) throw new Error(response.error)
+  return response.data
+})
+chrome.runtime.sendMessage = async message => {
+  try { return { ok: true, data: await cached(message) } }
+  catch (error) { return { ok: false, error: error.message, authExpired: error.authExpired } }
+}`)
     return
   }
   if (!allowed.has(path)) {
@@ -82,7 +95,7 @@ const server = createServer(async (request, response) => {
   try {
     let content = await readFile(new URL(`..${path}`, import.meta.url), 'utf8')
     if (path === '/popup.html') {
-      content = content.replace('<script type="module"', '<script src="preview-mock.js"></script><script type="module"')
+      content = content.replace('<script type="module"', '<script type="module" src="preview-mock.js"></script><script type="module"')
       content = content.replace('<title>', '<title>合成验收 · ')
     }
     response.setHeader('Content-Type', allowed.get(path))

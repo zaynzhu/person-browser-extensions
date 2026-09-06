@@ -45,6 +45,7 @@ async function request(url, options = {}) {
     error.isTimeout = cause.name === 'TimeoutError' || cause.name === 'AbortError'
     throw error
   }
+  if (response.status === 401) throw Object.assign(new Error('115 登录已失效，请重新扫码'), { authExpired: true })
   if (!response.ok) throw new Error(`115 请求失败（HTTP ${response.status}）`)
   return response
 }
@@ -62,6 +63,7 @@ async function requestJson(url, options = {}) {
         ? '115 要求验证安全密钥（230012）；请勿反复扫码'
         : `115 拒绝了请求${code !== undefined ? `（${code}）` : ''}`)
       error.code = code === undefined ? undefined : Number(code)
+      error.authExpired = [99, 401].includes(error.code)
       throw error
     }
     return body

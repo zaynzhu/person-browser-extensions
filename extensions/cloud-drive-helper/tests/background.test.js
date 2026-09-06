@@ -8,7 +8,7 @@ test('后台连接、目录选择与断开保持凭证边界和原子性', async
   const local = {
     get: async () => structuredClone(state),
     set: async value => Object.assign(state, structuredClone(value)),
-    remove: async keys => keys.forEach(key => delete state[key]),
+    remove: async keys => (Array.isArray(keys) ? keys : [keys]).forEach(key => delete state[key]),
     setAccessLevel: async value => { accessLevel = value.accessLevel },
   }
   const runtime = {
@@ -28,7 +28,7 @@ test('后台连接、目录选择与断开保持凭证边界和原子性', async
   assert.equal(accessLevel, 'TRUSTED_CONTEXTS')
   assert.deepEqual(state.guangyaCredentials, credentials)
   const status = await send({ type: 'get-state' })
-  assert.deepEqual(status.data, { connected: true, target: null })
+  assert.deepEqual(status.data, { connected: true, target: null, root: { folders: [], total: 0, page: 0, pageSize: 50 } })
   assert.ok(!JSON.stringify(status).includes(credentials.clientSecret))
   const path = [{ id: '', name: '根目录' }, { id: 'folder-test', name: '合成文件夹' }]
   assert.equal((await send({ type: 'save-target', path })).ok, true)

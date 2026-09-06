@@ -111,6 +111,7 @@ export async function readFolderPage(credentials, parentId = '', page = 0, webSe
     throw new Error(error.name === 'TimeoutError' || error.name === 'AbortError'
       ? '光鸭请求超时，请稍后重试' : '无法连接光鸭，请检查网络后重试')
   }
+  if (response.status === 401) throw Object.assign(new Error('光鸭连接已失效，请重新连接'), { authExpired: true })
   if (!response.ok) throw new Error(`光鸭请求失败（HTTP ${response.status}）`)
 
   let body
@@ -119,6 +120,7 @@ export async function readFolderPage(credentials, parentId = '', page = 0, webSe
   } catch {
     throw new Error('光鸭返回的响应不是有效 JSON')
   }
+  if (body?.code === 401) throw Object.assign(new Error('光鸭连接已失效，请重新连接'), { authExpired: true })
   // 实测成功响应可能省略 code；必须同时核对成功文案和目录数据结构。
   if (!body || (body.code === undefined ? body.msg !== 'success' : body.code !== 0)) {
     throw new Error(`光鸭拒绝了请求${Number.isSafeInteger(body?.code) ? `（错误码 ${body.code}）` : ''}，请检查凭证及会员状态`)

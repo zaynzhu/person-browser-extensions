@@ -1,5 +1,6 @@
 import { RateLimiter, readFolderPage, validateCredentials } from './guangya-api.js'
 import { readGuangyaWebSession } from './web-session.js'
+import { createCachedHandler } from './directory-cache.js'
 import { create123Handler } from './pan123-background.js'
 import { create115Handler } from './pan115-background.js'
 
@@ -109,12 +110,14 @@ async function handleMessage(message) {
   throw new Error('未知操作')
 }
 
+const handleCachedMessage = createCachedHandler(chrome.storage.local, handleMessage)
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id || sender.url !== chrome.runtime.getURL('popup.html')) return
   // 将连接、读目录和断开串行执行，避免切换账号时混入旧账号数据。
-  const pending = commands.then(() => handleMessage(message))
+  const pending = commands.then(async () => { await ready; return handleCachedMessage(message) })
   commands = pending.catch(() => {})
   pending.then(data => sendResponse({ ok: true, data }))
-    .catch(error => sendResponse({ ok: false, error: error.message }))
+    .catch(error => sendResponse({ ok: false, error: error.message, authExpired: Boolean(error.authExpired) }))
   return true
 })
