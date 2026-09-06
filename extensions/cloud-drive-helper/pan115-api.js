@@ -43,20 +43,27 @@ async function request(url, options = {}) {
   return response
 }
 
-async function requestJson(url, options) {
-  const response = await request(url, options)
-  let body
-  try { body = await response.json() } catch { throw new Error('115 响应格式异常') }
-  if (!body || ![true, 1].includes(body.state)) {
-    const code = body?.code ?? body?.errno ?? body?.errcode
-    throw new Error(`115 拒绝了请求${Number.isSafeInteger(code) ? `（${code}）` : ''}，请重新扫码或稍后重试`)
+async function requestJson(url, options = {}) {
+  const { stage, ...fetchOptions } = options
+  try {
+    const response = await request(url, fetchOptions)
+    let body
+    try { body = await response.json() } catch { throw new Error('115 响应格式异常') }
+    if (!body || ![true, 1].includes(body.state)) {
+      const code = [body?.code, body?.errno, body?.errcode].find(value =>
+        Number.isSafeInteger(value) || (typeof value === 'string' && /^-?\d{1,16}$/.test(value)))
+      throw new Error(`115 拒绝了请求${code !== undefined ? `（${code}）` : ''}`)
+    }
+    return body
+  } catch (error) {
+    error.message = `${stage}：${error.message}`
+    throw error
   }
-  return body
 }
 
 export async function createQrToken(app) {
   validateClient(app)
-  const body = await requestJson(`${QR_ORIGIN}/api/1.0/${app}/1.0/token/`)
+  const body = await requestJson(`${QR_ORIGIN}/api/1.0/${app}/1.0/token/`, { stage: `${CLIENT_TYPES[app]} 二维码生成` })
   const data = body.data
   if (!data || typeof data.uid !== 'string' || !data.uid || typeof data.sign !== 'string' || !data.sign
     || !Number.isSafeInteger(data.time)) throw new Error('115 二维码响应格式异常')
@@ -77,7 +84,7 @@ export async function readQrImage(uid) {
 export async function readQrStatus(token) {
   const query = new URLSearchParams({ uid: token.uid, time: String(token.time), sign: token.sign })
   let body
-  try { body = await requestJson(`${QR_ORIGIN}/get/status/?${query}`, { timeoutMs: 20000 }) }
+  try { body = await requestJson(`${QR_ORIGIN}/get/status/?${query}`, { timeoutMs: 20000, stage: '扫码状态查询' }) }
   catch (error) {
     // 状态接口会长轮询；无状态变化导致的超时继续等待，由后台的两分钟期限统一结束。
     if (error.isTimeout) return 0
@@ -105,6 +112,7 @@ export async function exchangeQrToken(token, app) {
   validateClient(app)
   const body = await requestJson(`https://passportapi.115.com/app/1.0/${app}/1.0/login/qrcode/`, {
     method: 'POST', body: new URLSearchParams({ app, account: token.uid }),
+    stage: `${CLIENT_TYPES[app]} 登录凭证交换`,
   })
   return normalizeSession(body.data, app)
 }
@@ -119,7 +127,7 @@ export async function read115Folders(parentId = '', page = 0) {
     show_dir: '1', nf: '1', count_folders: '1', o: 'file_name', asc: '1', custom_order: '1',
     record_open_time: '0', format: 'json',
   })
-  const body = await requestJson(`https://webapi.115.com/files?${query}`)
+  const body = await requestJson(`https://webapi.115.com/files?${query}`, { stage: '目录读取' })
   const total = typeof body.count === 'string' && /^\d+$/.test(body.count) ? Number(body.count) : body.count
   if (!Array.isArray(body.data) || !Number.isSafeInteger(total) || total < body.data.length
     || body.data.some(item => !item || item.fid !== undefined || typeof item.cid !== 'string'

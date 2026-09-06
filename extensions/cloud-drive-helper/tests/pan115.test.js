@@ -48,7 +48,7 @@ test('115 目录保留大整数 ID，分页只请求文件夹，拒绝混入文�
   body = { ...folderBody, data: [{ fid: '2', cid: '1', n: '文件' }] }
   await assert.rejects(read(), /格式异常/)
   body = { state: false, data: [], count: 0 }
-  await assert.rejects(read(), /重新扫码/)
+  await assert.rejects(read(), /目录读取：115 拒绝/)
   await assert.rejects(read115Folders('', -1), /分页/)
 })
 
@@ -147,4 +147,20 @@ test('115 全流程：等待、取消、持久恢复、多客户端隔离、换�
   status = -2
   assert.equal((await send('poll-qr', { attemptId: attempt.attemptId })).status, 'cancelled')
   assert.equal(temporary.pan115Pending, undefined)
+})
+
+
+test('115 拒绝响应标明失败阶段，保留字符串错误码且不泄露响应内容', async t => {
+  let body = { state: false, errno: '990001', error: 'synthetic-secret' }
+  t.mock.method(globalThis, 'fetch', async () => Response.json(body))
+  await assert.rejects(readQrStatus({ uid: 'synthetic', time: 123, sign: 'synthetic' }), /扫码状态查询：115 拒绝了请求（990001）/)
+  await assert.rejects(exchangeQrToken({ uid: 'synthetic' }, 'harmony'), /鸿蒙.*登录凭证交换：115 拒绝了请求（990001）/)
+  await assert.rejects(read115Folders('', 0), /目录读取：115 拒绝了请求（990001）/)
+  body = { state: false, code: 'synthetic-secret', message: 'synthetic-secret' }
+  await assert.rejects(read115Folders('', 0), error => {
+    assert.match(error.message, /目录读取/)
+    assert.ok(!error.message.includes('synthetic-secret'))
+    assert.ok(!error.message.includes('重新扫码'))
+    return true
+  })
 })
