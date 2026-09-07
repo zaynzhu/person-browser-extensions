@@ -18,6 +18,7 @@ export function createTransferService(chromeApi, getState, execute = executeShar
   const local = chromeApi.storage.local
   const temporary = chromeApi.storage.session
   const active = new Set()
+  const queued = new Map()
   let updates = Promise.resolve()
 
   function update(jobId, value) {
@@ -61,8 +62,11 @@ export function createTransferService(chromeApi, getState, execute = executeShar
     active.add(jobId)
     let writing = false
     try {
-      const share = parseShareLink(info.linkUrl || info.selectionText || '')
-      const selected = await binding(share.provider)
+      const snapshot = queued.get(jobId)
+      if (!snapshot && !info) return
+      const share = snapshot?.share || parseShareLink(info.linkUrl || info.selectionText || '')
+      const selected = snapshot?.selected || await binding(share.provider)
+      if (JSON.stringify(await binding(share.provider)) !== JSON.stringify(selected)) throw new Error('排队期间账号或目标目录已变化，请重新提交')
       await update(jobId, { provider: share.provider, targetPath: selected.target.path.map(item => item.name).join(' / '), status: 'preparing', message: '正在准备转存' })
       const limiter = new RateLimiter(temporary, share.provider === '115' ? 'pan115LastRequestAt' : share.provider === '123' ? 'pan123LastRequestAt' : 'guangyaLastRequestAt')
       const result = await execute({
@@ -85,17 +89,32 @@ export function createTransferService(chromeApi, getState, execute = executeShar
       await local.remove(`directoryCache-${selected.scope}`)
     } catch (error) {
       await update(jobId, { status: writing && !error.definitive ? 'unknown' : 'failed', message: `${writing && !error.definitive ? '结果未确认' : '转存失败'}：${error.message}${writing ? '。请先检查目标目录，不要直接重复转存。' : '。未执行写入。'}` })
-    } finally { active.delete(jobId) }
+    } finally { active.delete(jobId); queued.delete(jobId) }
   }
 
   return {
-    async create() {
+    async create(info) {
       const jobId = crypto.randomUUID()
       await update(jobId, { status: 'queued', message: '等待处理', createdAt: Date.now() })
       active.add(jobId)
+      if (info) {
+        try {
+          const share = parseShareLink(info.linkUrl || info.selectionText || '')
+          const selected = await binding(share.provider)
+          queued.set(jobId, { share, selected })
+          await update(jobId, { provider: share.provider, sourceLabel: share.shareId, targetPath: selected.target.path.map(item => item.name).join(' / ') })
+        } catch (error) {
+          active.delete(jobId)
+          await update(jobId, { status: 'failed', message: `提交失败：${error.message}。未执行写入。` })
+        }
+      }
       return jobId
     },
     run,
+    async list() {
+      const jobs = (await temporary.get(JOB_KEY))[JOB_KEY] || {}
+      return Promise.all(Object.keys(jobs).reverse().map(async jobId => ({ jobId, ...await this.read(jobId) })))
+    },
     async read(jobId) {
       const job = (await temporary.get(JOB_KEY))[JOB_KEY]?.[jobId]
       if (!job) throw new Error('任务记录不存在或浏览器已重启')

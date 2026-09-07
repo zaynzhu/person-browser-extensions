@@ -121,7 +121,7 @@ zaynzhu-browser-extensions/
 - Service Worker（后台运行）
 - 简单搜索扩展仅申请 `contextMenus` 权限；hdhive-search 额外申请 `storage`；xcili-search 额外申请 `activeTab` 和 `storage`；mukaku-search 额外申请 `storage`；kuakeq-search 额外申请 `storage`；jiaofu-search 额外申请 `storage`；subhd-search 额外申请 `storage`；imdb-search 申请 `storage`；tgtodrive-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（目标为自建 NAS，地址可配置无法预先限定）；enhance-pansou 申请 `storage` 和 `scripting`（content script 注入详情页），host 权限 `<all_urls>`（观影站与盘搜地址均可配置）；pansou-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（盘搜地址可配置）；juying-search 额外申请 `storage` 和 `scripting`（注入填词脚本），host 权限 `<all_urls>`（聚影地址可配置）；dianying-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）；panlian-search 仅申请 `contextMenus` 和 `storage`（直开搜索 URL，无注入）
 - 零依赖，纯原生 JS
-- cloud-drive-helper 申请 `contextMenus`、`storage`、`scripting` 及 `https://dapi.guangyapan.com/*`、`https://api.guangyapan.com/*`、`https://www.guangyapan.com/*`。点击图标通过 `openOptionsPage` 打开 `popup.html` 完整配置页。光鸭支持开发者凭证（本机 `chrome.storage.local`，TRUSTED_CONTEXTS）与网页登录（仅用户点击时读取本扩展打开的官网标签页指定登录项，访问令牌存 `chrome.storage.session`，不读取刷新令牌）。两种方式的目标分开保存，网页目标绑定账号，切换账号清除旧目标。开发者方式仅读取普通目录并保存目标；分享转存使用网页登录及其独立目标，磁力离线尚未实现。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
+- cloud-drive-helper 申请 `activeTab`、`contextMenus`、`storage`、`scripting` 及 `https://dapi.guangyapan.com/*`、`https://api.guangyapan.com/*`、`https://www.guangyapan.com/*`。点击图标打开 `transfer-panel.html` 任务列表，其中「连接与目录」通过 `openOptionsPage` 打开 `popup.html`。光鸭支持开发者凭证（本机 `chrome.storage.local`，TRUSTED_CONTEXTS）与网页登录（仅用户点击时读取本扩展打开的官网标签页指定登录项，访问令牌存 `chrome.storage.session`，不读取刷新令牌）。两种方式的目标分开保存，网页目标绑定账号，切换账号清除旧目标。开发者方式仅读取普通目录并保存目标；分享转存使用网页登录及其独立目标，磁力离线尚未实现。实际成功响应可能省略 `code`，需校验 `msg` 与目录结构；限流时间保存在 `chrome.storage.session`，请求间隔至少 2 秒。
 
 - 115 主方案是在插件内选择客户端类型后手机扫码，不依赖官网已登录或 AppID。追加 `qrcodeapi.115.com`、`passportapi.115.com`、`webapi.115.com`、`proapi.115.com` 主机及 `declarativeNetRequestWithHostAccess` 权限；扫码 Cookie 按客户端类型保存在本机 `chrome.storage.local`，目标绑定类型和账号，换账号失败保留旧状态。仅目录请求期间通过受限规则附加 Cookie（仅本扩展发起的 `/files?` 或对应客户端 `/2.0/ufile/files?` 请求），结束时移除规则，不改浏览器 Cookie。目录 ID 保持字符串；115 独立限流至少 2 秒，扫码有效期两分钟，状态长轮询超时继续等待但不突破总期限。不同配置页的旧连接 ID 不得覆盖新账号目标。所有测试与日志只用合成数据。首次或同账号扫码成功即保存会话以便目录失败后刷新，切换不同账号仍等目录成功后替换旧状态。网页目录返回 230012 时仅尝试一次所选客户端的应用目录接口，沿用同一 Cookie；仅列根目录第一层文件夹。鸿蒙扫码交换及 S1 类型已据用户响应核对，2026-09-07 已使用当前会话完成真实目录读取及分享转存验收；客户端分享列表使用 fid/fc/fn/fs。
 
@@ -130,6 +130,8 @@ zaynzhu-browser-extensions/
 - 配置页通过 `directory-cache.js` 缓存根目录到本机，按提供方、授权方式与 115 客户端隔离；连接 ID 变化、退出或本机会话过期时失效。打开页面只读连接状态和缓存，无缓存才取目录；手动刷新与测试连接强制读取，仍遵守限流。明确认证失败标记未连接，网络故障不清除会话。
 
 - 分享转存通过 `contextMenus` 接收用户右键的链接或选中文字，不自动点击网页按钮、不执行任意 URL。固定 API 主机；115 临时规则 116 仅匹配本扩展发起的当前接口，结束移除。写入前核实账号、目标 ID 与名称，禁止默认根目录、覆盖和自动写入重试。任务完成及目标回读核验后才能显示成功；提交后不确定结果单独标记。真实测试数据不得进入源码、日志或 fixtures。
+
+- 右键转存提交队列与执行队列分开，提交不等待转存。入队即绑定账号目标，执行前重新核对；网页右上角按需注入可收起的跨源 iframe 任务框，不自动创建结果标签。`activeTab` 仅随用户操作授予，面板读取须匹配后台登记的标签 ID 与随机令牌；工具栏弹窗也可读取队列。不得把任务明细直接发送给网页脚本。
 
 ## 开发约定
 

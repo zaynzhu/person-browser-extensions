@@ -1,5 +1,6 @@
 import { RateLimiter, readFolderPage, validateCredentials } from './guangya-api.js'
 import { readGuangyaWebSession } from './web-session.js'
+import { installTransferPanel } from './transfer-overlay.js'
 import { createTransferService } from './transfer-background.js'
 import { createCachedHandler } from './directory-cache.js'
 import { create123Handler } from './pan123-background.js'
@@ -15,7 +16,7 @@ let commands = Promise.resolve()
 const handle115 = create115Handler(chrome)
 const handle123 = create123Handler(chrome)
 
-chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage())
+
 
 async function getWebSession() {
   const state = await chrome.storage.session.get(WEB_KEY)
@@ -116,6 +117,22 @@ const handleCachedMessage = createCachedHandler(chrome.storage.local, handleMess
 const transfers = createTransferService(chrome, handleCachedMessage)
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id === chrome.runtime.id && message.type === 'list-transfers') {
+    const panelUrl = chrome.runtime.getURL('transfer-panel.html')
+    const read = async () => {
+      await ready
+      const grants = (await chrome.storage.session.get('transferPanelGrants')).transferPanelGrants || {}
+      const token = grants[sender.tab?.id]
+      const trusted = (!sender.tab && sender.url === panelUrl) || (token && sender.url === `${panelUrl}?token=${token}`)
+      if (!trusted) throw new Error('任务面板未授权')
+      const jobs = await transfers.list()
+      const pending = jobs.filter(job => ['queued', 'preparing', 'submitting'].includes(job.status)).length
+      await chrome.action.setBadgeText({ text: pending ? String(pending) : '' })
+      return jobs
+    }
+    read().then(data => sendResponse({ ok: true, data })).catch(error => sendResponse({ ok: false, error: error.message }))
+    return true
+  }
   if (sender.id === chrome.runtime.id && sender.url?.startsWith(chrome.runtime.getURL('transfer.html') + '?') && message.type === 'read-transfer') {
     transfers.read(message.jobId).then(data => sendResponse({ ok: true, data })).catch(error => sendResponse({ ok: false, error: error.message }))
     return true
@@ -136,11 +153,31 @@ async function registerTransferMenu() {
 }
 chrome.runtime.onInstalled?.addListener(registerTransferMenu)
 chrome.runtime.onStartup?.addListener(registerTransferMenu)
-chrome.contextMenus?.onClicked.addListener(async info => {
+// 接收提交与执行转存使用不同队列：提交只读本机状态，长任务不阻塞下一次右键。
+let submissions = Promise.resolve()
+chrome.contextMenus?.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== 'save-share') return
-  await ready
-  const jobId = await transfers.create()
-  await chrome.tabs.create({ url: chrome.runtime.getURL(`transfer.html?job=${jobId}`) })
-  const pending = commands.then(() => transfers.run(jobId, { linkUrl: info.linkUrl, selectionText: info.selectionText }))
-  commands = pending.catch(() => {})
+  const receipt = submissions.then(async () => {
+    await ready
+    const jobId = await transfers.create({ linkUrl: info.linkUrl, selectionText: info.selectionText })
+    const pending = commands.then(() => transfers.run(jobId))
+    commands = pending.catch(() => {})
+    await chrome.action.setBadgeText({ text: String((await transfers.list()).filter(job => ['queued', 'preparing', 'submitting'].includes(job.status)).length) })
+    if (Number.isInteger(tab?.id)) {
+      try {
+        const state = await chrome.storage.session.get('transferPanelGrants')
+        const grants = state.transferPanelGrants || {}
+        const token = grants[tab.id] || crypto.randomUUID()
+        await chrome.storage.session.set({ transferPanelGrants: { ...grants, [tab.id]: token } })
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: installTransferPanel, args: [chrome.runtime.getURL(`transfer-panel.html?token=${token}`), token] })
+      } catch {
+        // 受限页面不打开替代标签页；用户可点击工具栏图标查看同一任务队列。
+      }
+    }
+    pending.finally(async () => {
+      const count = (await transfers.list()).filter(job => ['queued', 'preparing', 'submitting'].includes(job.status)).length
+      await chrome.action.setBadgeText({ text: count ? String(count) : '' })
+    }).catch(() => {})
+  })
+  submissions = receipt.catch(() => {})
 })

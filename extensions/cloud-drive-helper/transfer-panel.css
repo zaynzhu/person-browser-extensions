@@ -1,0 +1,18 @@
+:root { color-scheme: light; font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #292d34; background: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; width: 370px; max-width: 100vw; height: 440px; overflow: hidden; }
+header { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid #eceef0; }
+strong { font-size: 15px; }
+button { border: 0; background: transparent; color: #8d400e; font: inherit; padding: 5px; cursor: pointer; }
+button:focus-visible { outline: 2px solid #b74700; border-radius: 4px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; color: #727780; padding: 9px 10px; font-size: 12px; }
+#panelStatus { margin: 0 14px; color: #727780; }
+ol { margin: 0; padding: 0 12px 12px; list-style: none; overflow-y: auto; height: 334px; }
+li { padding: 12px 0; border-bottom: 1px solid #eceef0; }
+.job-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; font-weight: 600; }
+.job-label { overflow-wrap: anywhere; min-width: 0; }
+.job-state { white-space: nowrap; color: #8d400e; }
+[data-status="success"] .job-state { color: #277144; }
+[data-status="failed"] .job-state, [data-status="unknown"] .job-state { color: #b02b23; }
+.job-target, .job-message { margin: 5px 0 0; font-size: 12px; color: #676e78; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }

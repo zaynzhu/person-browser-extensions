@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "连接 115、光鸭和 123，选择目标目录，通过右键转存分享链接并核实结果。",
   "permissions": [
     "storage",
     "scripting",
     "declarativeNetRequestWithHostAccess",
-    "contextMenus"
+    "contextMenus",
+    "activeTab"
   ],
   "host_permissions": [
     "https://dapi.guangyapan.com/*",
@@ -24,10 +25,22 @@
     "type": "module"
   },
   "action": {
-    "default_title": "打开云盘助手配置"
+    "default_title": "查看云盘转存任务",
+    "default_popup": "transfer-panel.html"
   },
   "options_ui": {
     "page": "popup.html",
     "open_in_tab": true
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "transfer-panel.html"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ]
 }

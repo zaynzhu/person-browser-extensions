@@ -118,3 +118,38 @@ test('123 同名目标不写入，服务端失败与未回读完成均不能返�
     t.mock.restoreAll()
   }
 })
+
+test('连续提交立即出现在任务列表，执行中不阻塞下一条入队，排队目标变化后停止', async () => {
+  const local = storage({ pan123Session: { accountId: 'synthetic', connectionId: 'connection' }, pan123Target: { accountId: 'synthetic', target } })
+  const temporary = storage()
+  let release
+  const hold = new Promise(resolve => { release = resolve })
+  let started
+  const running = new Promise(resolve => { started = resolve })
+  let calls = 0
+  const service = createTransferService({ storage: { local, session: temporary } }, async () => ({ connected: true }), async options => {
+    calls++
+    await options.beforeWrite()
+    started()
+    await hold
+    return { count: 1 }
+  })
+  const first = await service.create({ linkUrl: 'https://www.123pan.com/s/synthetic-first' })
+  const firstRun = service.run(first)
+  await running
+  const second = await service.create({ linkUrl: 'https://www.123pan.com/s/synthetic-second' })
+  const third = await service.create({ linkUrl: 'https://www.123pan.com/s/synthetic-third' })
+  const jobs = await service.list()
+  assert.equal(jobs.length, 3)
+  assert.equal(jobs.find(job => job.jobId === first).status, 'submitting')
+  assert.equal(jobs.find(job => job.jobId === second).status, 'queued')
+  assert.equal(jobs.find(job => job.jobId === third).sourceLabel, 'synthetic-third')
+  assert.ok(!JSON.stringify(jobs).includes('connection'))
+  release()
+  await firstRun
+  local.values.pan123Target.target = { id: '99', path: [{ id: '', name: '根目录' }, { id: '99', name: '合成其他目录' }] }
+  await service.run(second)
+  assert.equal((await service.read(second)).status, 'failed')
+  assert.match((await service.read(second)).message, /排队期间/)
+  assert.equal(calls, 1)
+})

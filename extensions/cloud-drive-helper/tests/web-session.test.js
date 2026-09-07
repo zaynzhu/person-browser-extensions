@@ -47,18 +47,16 @@ test('双连接隔离，网页登录失败保留旧连接，切换账号清除�
     setAccessLevel: async () => {},
   })
   let listener
-  let click
-  let opened = false
   let tabUrl = 'https://www.guangyapan.com/'
   let candidate = { accessToken: 'synthetic-token', accountId: 'user-a', expiresAt: Date.now() + 60000 }
   const runtime = {
     id: 'synthetic-extension',
     getURL: path => `chrome-extension://synthetic-extension/${path}`,
-    openOptionsPage: async () => { opened = true },
+    openOptionsPage: async () => {},
     onMessage: { addListener: value => { listener = value } },
   }
   globalThis.chrome = {
-    runtime, action: { onClicked: { addListener: value => { click = value } } },
+    runtime, action: {},
     storage: { local: storage(state), session: storage(sessionState) },
     tabs: { create: async () => ({ id: 7 }), get: async id => { assert.equal(id, 7); return { url: tabUrl } } },
     scripting: { executeScript: async options => {
@@ -70,8 +68,6 @@ test('双连接隔离，网页登录失败保留旧连接，切换账号清除�
   t.after(() => { delete globalThis.chrome })
   t.mock.method(globalThis, 'fetch', async () => Response.json({ msg: 'success', data: {} }))
   await import('../background.js')
-  await click()
-  assert.equal(opened, true)
   const sender = { id: runtime.id, url: runtime.getURL('popup.html') }
   const send = message => new Promise(resolve => listener({ mode: 'web', ...message }, sender, resolve))
   assert.equal(listener({}, { id: runtime.id, url: 'https://www.guangyapan.com/' }, () => {}), undefined)
