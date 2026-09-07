@@ -1,3 +1,4 @@
+import { installTransferPanel } from './transfer-overlay.js'
 import { CLIENT_TYPES } from './pan115-api.js'
 
 const controls = document.getElementById('controls')
@@ -356,3 +357,7 @@ document.getElementById('testConnectionBtn').addEventListener('click', () => run
   renderFolders(data.root, ROOT_PATH)
   setStatus('连接正常，根目录已更新')
 }))
+
+document.getElementById('showTasksBtn').addEventListener('click', () => {
+  installTransferPanel(chrome.runtime.getURL('transfer-panel.html?token=config'), 'config')
+})

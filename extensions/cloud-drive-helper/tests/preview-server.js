@@ -17,7 +17,7 @@ function installMockChrome() {
     const folders = parentId === '' ? root : parentId === 'movie-demo' ? [{ id: 'child-demo', name: '合成待看' }] : []
     return { folders: folders.slice(page * 50, (page + 1) * 50), total: folders.length, page, pageSize: 50 }
   }
-  globalThis.chrome = { runtime: { sendMessage: async message => {
+  globalThis.chrome = { runtime: { getURL: path => new URL(path, location.href).href, sendMessage: async message => {
     await new Promise(resolve => setTimeout(resolve, 120))
     try {
       let data

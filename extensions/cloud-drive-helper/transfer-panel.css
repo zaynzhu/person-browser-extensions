@@ -1,13 +1,15 @@
 :root { color-scheme: light; font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #292d34; background: #fff; }
 * { box-sizing: border-box; }
-body { margin: 0; width: 370px; max-width: 100vw; height: 440px; overflow: hidden; }
-header { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid #eceef0; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+#panelBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+header { height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid #eceef0; }
 strong { font-size: 15px; }
 button { border: 0; background: transparent; color: #8d400e; font: inherit; padding: 5px; cursor: pointer; }
 button:focus-visible { outline: 2px solid #b74700; border-radius: 4px; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; color: #727780; padding: 9px 10px; font-size: 12px; }
+.toolbar { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; color: #727780; padding: 9px 10px; font-size: 12px; }
 #panelStatus { margin: 0 14px; color: #727780; }
-ol { margin: 0; padding: 0 12px 12px; list-style: none; overflow-y: auto; height: 334px; }
+ol { margin: 0; padding: 0 12px 12px; list-style: none; overflow-y: auto; flex: 1; min-height: 0; scrollbar-gutter: stable; }
 li { padding: 12px 0; border-bottom: 1px solid #eceef0; }
 .job-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; font-weight: 600; }
 .job-label { overflow-wrap: anywhere; min-width: 0; }

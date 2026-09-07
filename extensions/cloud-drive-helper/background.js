@@ -16,7 +16,7 @@ let commands = Promise.resolve()
 const handle115 = create115Handler(chrome)
 const handle123 = create123Handler(chrome)
 
-
+chrome.action.onClicked?.addListener(() => chrome.runtime.openOptionsPage())
 
 async function getWebSession() {
   const state = await chrome.storage.session.get(WEB_KEY)
@@ -123,7 +123,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await ready
       const grants = (await chrome.storage.session.get('transferPanelGrants')).transferPanelGrants || {}
       const token = grants[sender.tab?.id]
-      const trusted = (!sender.tab && sender.url === panelUrl) || (token && sender.url === `${panelUrl}?token=${token}`)
+      const trusted = (sender.tab?.url === chrome.runtime.getURL('popup.html') && sender.url === `${panelUrl}?token=config`) || (token && sender.url === `${panelUrl}?token=${token}`)
       if (!trusted) throw new Error('任务面板未授权')
       const jobs = await transfers.list()
       const pending = jobs.filter(job => ['queued', 'preparing', 'submitting'].includes(job.status)).length
@@ -171,7 +171,7 @@ chrome.contextMenus?.onClicked.addListener((info, tab) => {
         await chrome.storage.session.set({ transferPanelGrants: { ...grants, [tab.id]: token } })
         await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: installTransferPanel, args: [chrome.runtime.getURL(`transfer-panel.html?token=${token}`), token] })
       } catch {
-        // 受限页面不打开替代标签页；用户可点击工具栏图标查看同一任务队列。
+        // 受限页面不打开替代标签页；用户可进入独立配置页的“全部任务”查看同一队列。
       }
     }
     pending.finally(async () => {

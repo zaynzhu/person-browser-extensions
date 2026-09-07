@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "连接 115、光鸭和 123，选择目标目录，通过右键转存分享链接并核实结果。",
   "permissions": [
     "storage",
@@ -25,8 +25,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "查看云盘转存任务",
-    "default_popup": "transfer-panel.html"
+    "default_title": "打开云盘助手配置"
   },
   "options_ui": {
     "page": "popup.html",
