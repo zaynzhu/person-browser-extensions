@@ -297,6 +297,7 @@ document.getElementById('cancelQrBtn').addEventListener('click', () => run(async
 
 clientType.addEventListener('change', () => run(async () => {
   await cancelQr()
+  if (clientType.value) await send({ type: 'select-client' })
   connectionId = null
   await loadState()
 }))

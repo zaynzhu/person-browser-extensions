@@ -1,5 +1,6 @@
 import { RateLimiter, readFolderPage, validateCredentials } from './guangya-api.js'
 import { readGuangyaWebSession } from './web-session.js'
+import { createTransferService } from './transfer-background.js'
 import { createCachedHandler } from './directory-cache.js'
 import { create123Handler } from './pan123-background.js'
 import { create115Handler } from './pan115-background.js'
@@ -112,7 +113,13 @@ async function handleMessage(message) {
 
 const handleCachedMessage = createCachedHandler(chrome.storage.local, handleMessage)
 
+const transfers = createTransferService(chrome, handleCachedMessage)
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id === chrome.runtime.id && sender.url?.startsWith(chrome.runtime.getURL('transfer.html') + '?') && message.type === 'read-transfer') {
+    transfers.read(message.jobId).then(data => sendResponse({ ok: true, data })).catch(error => sendResponse({ ok: false, error: error.message }))
+    return true
+  }
   if (sender.id !== chrome.runtime.id || sender.url !== chrome.runtime.getURL('popup.html')) return
   // 将连接、读目录和断开串行执行，避免切换账号时混入旧账号数据。
   const pending = commands.then(async () => { await ready; return handleCachedMessage(message) })
@@ -120,4 +127,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   pending.then(data => sendResponse({ ok: true, data }))
     .catch(error => sendResponse({ ok: false, error: error.message, authExpired: Boolean(error.authExpired) }))
   return true
+})
+
+
+async function registerTransferMenu() {
+  await chrome.contextMenus.removeAll()
+  chrome.contextMenus.create({ id: 'save-share', title: '转存分享至已选目录', contexts: ['selection', 'link', 'page'] })
+}
+chrome.runtime.onInstalled?.addListener(registerTransferMenu)
+chrome.runtime.onStartup?.addListener(registerTransferMenu)
+chrome.contextMenus?.onClicked.addListener(async info => {
+  if (info.menuItemId !== 'save-share') return
+  await ready
+  const jobId = await transfers.create()
+  await chrome.tabs.create({ url: chrome.runtime.getURL(`transfer.html?job=${jobId}`) })
+  const pending = commands.then(() => transfers.run(jobId, { linkUrl: info.linkUrl, selectionText: info.selectionText }))
+  commands = pending.catch(() => {})
 })

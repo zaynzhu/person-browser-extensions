@@ -37,7 +37,7 @@ export function normalize123Session(token) {
   } catch { throw new Error('123 登录令牌无效或已过期，请重新登录') }
 }
 
-async function request(path, { params = {}, body, token } = {}) {
+export async function request123(path, { params = {}, body, token } = {}) {
   const url = new URL(`/b/api/${path}`, API_ORIGIN)
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value))
   const nonce = crypto.getRandomValues(new Uint32Array(1))[0] % 10000001
@@ -58,7 +58,7 @@ async function request(path, { params = {}, body, token } = {}) {
   if (![0, 200].includes(result?.code)) {
     if (result?.code === 401) throw Object.assign(new Error('123 登录已失效，请重新登录'), { authExpired: true })
     if (/验证码|验证|captcha|verify/i.test(String(result?.message || result?.msg || ''))) throw new Error('123 要求人机验证，请先在官网完成验证后重试；本版暂不支持验证码登录')
-    throw new Error('123 拒绝请求，请检查账号密码或稍后重试')
+    throw Object.assign(new Error('123 拒绝请求，请检查账号、分享权限或稍后重试'), { definitive: true })
   }
   return result.data
 }
@@ -68,14 +68,14 @@ export async function login123(credentials) {
   const password = credentials?.password
   if (!username || username.length > 256 || typeof password !== 'string' || !password || password.length > 512) throw new Error('请输入有效的 123 账号和密码')
   const body = username.includes('@') ? { mail: username, password, type: 2 } : { passport: username, password, remember: true }
-  const data = await request('user/sign_in', { body })
+  const data = await request123('user/sign_in', { body })
   return normalize123Session(data?.token)
 }
 
 export async function read123Folders(session, page = 0) {
   if (!Number.isSafeInteger(page) || page < 0) throw new Error('123 分页参数无效')
   normalize123Session(session?.token)
-  const data = await request('file/list/new', {
+  const data = await request123('file/list/new', {
     token: session.token,
     params: { driveId: 0, limit: PAGE_SIZE, next: 0, orderBy: 'file_id', orderDirection: 'desc', parentFileId: 0, trashed: false, SearchData: '', Page: page + 1, OnlyLookAbnormalFile: 0, event: 'homeListFile', operateType: 4, inDirectSpace: false },
   })

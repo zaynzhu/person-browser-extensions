@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "云盘助手",
-  "version": "0.4.1",
-  "description": "115 手机扫码、光鸭双方式连接、123 账号密码登录；读取文件夹并保存目标目录。",
+  "version": "0.5.0",
+  "description": "连接 115、光鸭和 123，选择目标目录，通过右键转存分享链接并核实结果。",
   "permissions": [
     "storage",
     "scripting",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://dapi.guangyapan.com/*",

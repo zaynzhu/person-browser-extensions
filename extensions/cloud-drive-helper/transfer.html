@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>分享转存 · 云盘助手</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <h1>分享转存</h1>
+  <p id="transferProvider"></p>
+  <p>目标：<strong id="transferTarget">尚未核对</strong></p>
+  <p id="transferStatus" role="status" aria-live="polite">正在读取任务状态…</p>
+  <button id="openSettings" type="button">打开连接与目录设置</button>
+  <p class="hint">只有任务完成并在目标目录回读核实后才显示成功。结果未确认时，请先检查目标目录，避免重复转存。</p>
+  <script type="module" src="transfer.js"></script>
+</body>
+</html>

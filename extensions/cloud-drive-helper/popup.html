@@ -52,20 +52,20 @@
       <label for="authMode">连接方式</label>
       <select id="authMode">
         <option value="developer">开发者凭证</option>
-        <option value="web">网页登录（验证码 / 扫码）</option>
+        <option value="web" selected>网页登录（验证码 / 扫码）</option>
       </select>
-      <section id="webLogin" hidden>
+      <section id="webLogin">
         <p class="hint">在光鸭官网完成登录，再回到这里连接。仅在你点击连接时读取刚打开的官网标签页登录状态。</p>
         <button id="openWebLoginBtn" type="button">1. 打开光鸭官网登录</button>
         <button id="connectWebBtn" type="button" class="primary">2. 已登录，连接此账号</button>
         <p class="hint">访问令牌仅保留到浏览器关闭；过期后需刷新官网并重新连接。不保存密码、验证码或刷新令牌。两种方式的目标目录分别保存。</p>
       </section>
-      <form id="connectForm" autocomplete="off">
+      <form id="connectForm" autocomplete="off" hidden>
         <label for="clientId">client_id</label>
         <input id="clientId" name="clientId" type="text" placeholder="光鸭开发者凭证 ID" maxlength="256" required spellcheck="false" autocomplete="off">
         <label for="clientSecret">client_secret</label>
         <input id="clientSecret" name="clientSecret" type="password" placeholder="光鸭开发者密钥" maxlength="512" required autocomplete="off">
-        <p class="hint">需光鸭会员。凭证仅保存在此浏览器本机，不随浏览器账号同步。</p>
+        <p class="hint">需光鸭会员。凭证仅保存在此浏览器本机，不随浏览器账号同步。开发者方式仅支持目录浏览，分享转存请使用网页登录。</p>
         <button type="submit" class="primary">保存并连接</button>
       </form>
       </section>
@@ -91,7 +91,7 @@
   <footer>
     <span class="hint">已保存的目标</span>
     <p id="savedTarget">尚未选择</p>
-    <p class="hint">本版仅浏览目录和保存选择，尚未执行转存或离线下载。</p>
+    <p class="hint">右键分享链接可转存到已选目录；光鸭转存使用网页登录连接。尚不支持磁力离线。</p>
   </footer>
   </main>
   <script type="module" src="popup.js"></script>

@@ -83,6 +83,10 @@ export function create115Handler(chromeApi, limiter = new RateLimiter(chromeApi.
       }
     }
     validateClient(app)
+    if (message.type === 'select-client') {
+      await local.set({ pan115SelectedApp: app })
+      return null
+    }
     if (message.type === 'start-qr') {
       await temporary.remove(PENDING_KEY)
       const token = await limiter.run(() => createQrToken(app))
