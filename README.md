@@ -31,8 +31,8 @@
 | 🎬 | [**IMDB Search**](./extensions/imdb-search/) | [imdb.com](https://www.imdb.com) | 中文关键词通过 TMDB API 自动翻译后搜索 IMDB | `stable` |
 | 🧩 | [**盘搜～观影增强**](./extensions/enhance-pansou/) | [观影站](https://www.xn--wcv59z.com) | 在影片详情页拼接自建 PanSou 盘搜结果（云盘按类型入表 + 磁力入表），双地址可配置 | `stable` |
 | 🔮 | [**PanSou Search**](./extensions/pansou-search/) | 自建 PanSou 盘搜 | 右键选中文字在盘搜中搜索（注入式填词），支持弹窗手动搜索与自定义地址 | `stable` |
-| 🎞️ | [**JuYing Search**](./extensions/juying-search/) | [jying.top](https://www.jying.top) | 聚影站内影片 + 聚合网盘双入口搜索（注入式填词），支持弹窗手动搜索与自定义地址 | `stable` |
-| 🀄 | [**DianYing Search**](./extensions/dianying-search/) | [dian115.com](https://m.dian115.com) | 癫影电影/剧集/动漫三分类搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
+| 🎞️ | [**聚影 Search**](./extensions/juying-search/) | [jying.top](https://www.jying.top) | 聚影站内影片 + 聚合网盘双入口搜索（注入式填词），支持弹窗手动搜索与自定义地址 | `stable` |
+| 🀄 | [**癫影 Search**](./extensions/dianying-search/) | [dian115.com](https://m.dian115.com) | 癫影电影/剧集/动漫三分类搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
 | 🟣 | [**PanLian Search**](./extensions/panlian-search/) | [pinglian.lol](https://pinglian.lol) | 盘链网盘资源搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
 | 🎥 | [**ZhenYing Search**](./extensions/zhenying-search/) | [framehdr.com](https://framehdr.com) | 帧影影视资源搜索，直开搜索 URL，支持弹窗手动搜索与自定义主页 | `stable` |
 | 📁 | [**云盘助手**](./extensions/cloud-drive-helper/) | 115、光鸭 | 统一配置页；115 分客户端扫码登录，光鸭双方式连接；目录只读，123 待接入 | `preview` |
@@ -64,7 +64,7 @@ IMDB 扩展通过 [TMDB API](https://www.themoviedb.org/) 将中文关键词翻�
 
 ### 可配置搜索主页
 
-HDHive、不太灵、夸克圈、观影（Jiaofu Search）、SubHD、TTD、盘搜～观影增强、PanSou Search、JuYing Search、DianYing Search、PanLian Search、ZhenYing Search 支持自定义地址。点击对应扩展图标，在弹窗中修改并保存即可。
+HDHive、不太灵、夸克圈、观影（Jiaofu Search）、SubHD、TTD、盘搜～观影增强、PanSou Search、聚影 Search、癫影 Search、PanLian Search、ZhenYing Search 支持自定义地址。点击对应扩展图标，在弹窗中修改并保存即可。
 
 TTD 搜索的是 NAS 上自建的 TgtoDrive 管理台"影视探索"页：搜索不走 URL 参数，扩展会定位（或新开）TTD 标签页，自动填入关键词并模拟回车，**需要浏览器已登录 TgtoDrive**。已打开 TTD 时直接在原页面搜索，不再重复开标签页。
 
@@ -74,9 +74,9 @@ PanLian Search 右键选中文字即可在盘链（pinglian.lol）中搜索网�
 
 ZhenYing Search 右键选中文字即可在帧影（framehdr.com）中搜索影视资源：搜索 URL 直接带 `q` 参数跳转；也支持点击扩展图标手动输入关键词搜索。域名可在弹窗中修改。
 
-DianYing Search 右键选中文字可在癫影（dian115.com）中搜索，提供电影/剧集/动漫三个入口（搜索 URL 直接带 `kind` 参数跳转）；也支持点击扩展图标手动输入关键词后选择类型搜索。域名可在弹窗中修改。
+癫影 Search 右键选中文字可在癫影（dian115.com）中搜索，提供电影/剧集/动漫三个入口（搜索 URL 直接带 `kind` 参数跳转）；也支持点击扩展图标手动输入关键词后选择类型搜索。域名可在弹窗中修改。
 
-JuYing Search 右键选中文字可在聚影（jying.top）中搜索，提供两个入口：**搜网盘资源**（聚合搜索）和**搜站内影片**（站内搜索）。聚影前端不读 URL 参数，扩展会定位（或新开）聚影标签页并导航到 `/search`，自动切换对应搜索 tab、填入关键词并点击搜索；也支持点击扩展图标手动输入关键词后选择站内/聚合搜索。
+聚影 Search 右键选中文字可在聚影（jying.top）中搜索，提供两个入口：**搜网盘资源**（聚合搜索）和**搜站内影片**（站内搜索）。聚影前端不读 URL 参数，扩展会定位（或新开）聚影标签页并导航到 `/search`，自动切换对应搜索 tab、填入关键词并点击搜索；也支持点击扩展图标手动输入关键词后选择站内/聚合搜索。
 
 盘搜～观影增强 在观影站（默认镜像 `www.xn--wcv59z.com`，品牌域名会变更）影片详情页标题旁注入盘搜按钮：点击后调用自建 [PanSou](https://github.com/fish2018/PanSou) 服务搜索影片主标题，云盘结果（仅夸克/光鸭/115/123 四类）按类型拼进"网盘资源"对应表格（缺的类型自动建表），磁力结果拼进"磁力资源"表（含复制按钮）；与原生结果按链接去重，再次点击强制刷新，标题旁铅笔按钮可修改搜索词。观影站与 PanSou 服务地址均可在弹窗/选项页配置。
 
@@ -107,8 +107,8 @@ git clone https://github.com/zaynzhu/zaynzhu-browser-extensions.git
 | IMDB | `extensions/imdb-search/` |
 | 盘搜～观影增强 | `extensions/enhance-pansou/` |
 | PanSou Search | `extensions/pansou-search/` |
-| JuYing Search | `extensions/juying-search/` |
-| DianYing Search | `extensions/dianying-search/` |
+| 聚影 Search | `extensions/juying-search/` |
+| 癫影 Search | `extensions/dianying-search/` |
 | PanLian Search | `extensions/panlian-search/` |
 | ZhenYing Search | `extensions/zhenying-search/` |
 | 云盘助手 | `extensions/cloud-drive-helper/` |
@@ -164,8 +164,8 @@ fnm exec --using=22.22.2 node extensions/cloud-drive-helper/tests/preview-server
 | IMDB | ✅ | ✅ | - | 弹窗 + API Key 配置存储 |
 | 盘搜～观影增强 | - | ✅ | - | 详情页注入（`scripting` + content script，host `<all_urls>`）+ 双地址配置存储 |
 | PanSou Search | ✅ | ✅ | - | 弹窗 + 地址配置存储 + 注入填词（`scripting`，host `<all_urls>`） |
-| JuYing Search | ✅ | ✅ | - | 弹窗 + 地址配置存储 + 注入填词（`scripting`，host `<all_urls>`） |
-| DianYing Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
+| 聚影 Search | ✅ | ✅ | - | 弹窗 + 地址配置存储 + 注入填词（`scripting`，host `<all_urls>`） |
+| 癫影 Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
 | PanLian Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
 | ZhenYing Search | ✅ | ✅ | - | 弹窗 + 地址配置存储（搜索 URL 直开，无注入） |
 | 云盘助手 | - | ✅ | - | 凭证及目标仅本机保存，仅访问光鸭官方 `dapi.guangyapan.com` |
@@ -300,8 +300,8 @@ zaynzhu-browser-extensions/
 | IMDB | `imdb.com/find/?q={keyword}`（中文通过 TMDB 翻译后搜索） |
 | 盘搜～观影增强 | 不跳转：详情页注入 `GET {pansou}/api/search?kw={主标题}&res=merge`，结果拼进当前页资源表格（双地址可配置） |
 | PanSou Search | 不走 URL 参数（前端不读 query）：打开配置地址后注入脚本，向 `input[placeholder^="搜索资源"]` 填词并模拟 Enter；复用已打开的盘搜标签页（地址可配置，存储在 `chrome.storage`） |
-| JuYing Search | 不走 URL 参数（站内/聚合均为纯前端状态）：打开配置地址的 `/search` 后注入脚本，点击对应 `.n-tabs-tab` → 向可见的 `input.n-input__input-el` 填词 → 点击"搜索"按钮；复用已打开的聚影标签页（地址可配置，默认 `https://www.jying.top`） |
-| DianYing Search | `m.dian115.com/discover?kind={movie|tv|anime}&q={keyword}`（三分类菜单，直开 URL 即出结果，域名可配置） |
+| 聚影 Search | 不走 URL 参数（站内/聚合均为纯前端状态）：打开配置地址的 `/search` 后注入脚本，点击对应 `.n-tabs-tab` → 向可见的 `input.n-input__input-el` 填词 → 点击"搜索"按钮；复用已打开的聚影标签页（地址可配置，默认 `https://www.jying.top`） |
+| 癫影 Search | `m.dian115.com/discover?kind={movie|tv|anime}&q={keyword}`（三分类菜单，直开 URL 即出结果，域名可配置） |
 | PanLian Search | `pinglian.lol/pages/search.php?q={keyword}`（域名可配置） |
 | ZhenYing Search | `framehdr.com/search.php?q={keyword}`（域名可配置） |
 
